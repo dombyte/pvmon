@@ -1,0 +1,29 @@
+{
+  "profile": "tinkerforge/warp3",
+  "version": 1,
+  "source": "documentation",
+  "samples": [
+    {
+      "at": "2026-11-19T12:00:00Z",
+      "json": {
+        "ids": [1, 4, 39, 48, 57, 74, 209],
+        "values": [230.5, 16.0, 2453.5, 2453.5, 2453.5, 7360.5, 1234.5],
+        "evse": {
+          "charger_state": 3, "error_state": 0, "contactor_error": 0,
+          "dc_fault_current_state": 0, "allowed_charging_current": 16000
+        }
+      }
+    },
+    {
+      "at": "2026-11-19T17:30:00Z",
+      "json": {
+        "ids": [1, 4, 39, 48, 57, 74, 209],
+        "values": [231.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1240.25],
+        "evse": {
+          "charger_state": 0, "error_state": 0, "contactor_error": 0,
+          "dc_fault_current_state": 0, "allowed_charging_current": 32000
+        }
+      }
+    }
+  ]
+}

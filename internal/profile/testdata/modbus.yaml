@@ -1,0 +1,43 @@
+schema: 1
+profile: test/modbus
+version: 1
+vendor: Test
+transport: modbus
+modbus: { function: input, byte_order: big, word_order: big }
+read: { mode: range, max_registers: 10, ranges: [[100, 109], [200, 206]] }
+max_power: 10000
+netting: app
+blocks:
+  pv:
+    role: pv
+    channels:
+      power: { addr: 100, type: u32, unit: W }
+      energy_out: { addr: 102, type: u16, scale: 0.1, unit: kWh, counter: daily_reset, reset_group: daily, resolution: 0.1 }
+      total: { addr: 103, type: u32, unit: kWh, counter: lifetime, history: false }
+      mode: { addr: 200, type: u16, unit: "", history: false }
+      name: { addr: 204, type: string, length: 3, history: false }
+  pv1:
+    role: pv
+    channels:
+      voltage: { addr: 105, type: u16, scale: 0.1, unit: V }
+      current: { addr: 106, type: u16, scale: 0.1, unit: A }
+      power: { product: [pv1.voltage, pv1.current], unit: W }
+      energy_out: { derive: share, of: pv.energy_out, by: power }
+  battery:
+    role: battery
+    roles_allowed: [battery]
+    channels:
+      power: { addr: 107, type: i16, unit: W, sign_from: { addr: 108, type: u16, discharge_when: 1 } }
+      soc: { addr: 109, type: u16, unit: "%" }
+status:
+  operating: { addr: 108, type: u16, map: st }
+  faults: { addr: [202, 203], type: bitfield, map: bits }
+  bms: { addr: 109, type: bitfield, level: fault }
+maps:
+  st:
+    default: { level: fault }
+    0x0: { level: notice, text: { en: Waiting, de: Wartend } }
+    3: { level: ok, text: { en: Generating, de: Erzeugt } }
+  bits:
+    bits:
+      0: { level: fault, text: { en: Grid, de: Netz } }

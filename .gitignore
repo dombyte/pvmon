@@ -1,0 +1,30 @@
+# build output
+/pvmon
+/dist/
+/frontend/dist/*
+!/frontend/dist/.gitkeep
+/frontend/node_modules/
+
+# local runtime data and config
+/data/
+/config.yaml
+*.db
+*.db-wal
+*.db-shm
+secret.key
+
+# editors / OS
+.DS_Store
+.idea/
+.vscode/
+
+# coverage and build output
+/coverage.out
+/coverage.html
+*.out
+/bin/
+.env
+/example/pvmon-data/
+.dev/
+/frontend/test-results/
+/frontend/playwright-report/

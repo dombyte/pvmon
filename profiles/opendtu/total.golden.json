@@ -1,0 +1,11 @@
+{
+  "samples": [
+    {
+      "channels": {
+        "pv.power": 712.4, "pv.energy_out": 1523871,
+        "pv_power.power": 712.4
+      },
+      "status": {}
+    }
+  ]
+}

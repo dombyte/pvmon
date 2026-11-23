@@ -1,0 +1,53 @@
+# Draft profile, schema: SPEC.md section 4.2.
+schema: 1
+profile: tinkerforge/warp3
+version: 1
+vendor: Tinkerforge
+models: ["WARP3 Charger Pro"]
+transport: http
+verified: false           # from the WARP docs; no device dump yet
+http:
+  auth: digest            # only when credentials are set on the charger
+  endpoints:
+    - { id: ids,    url: "/meters/0/value_ids", interval: 1h }
+    - { id: values, url: "/meters/0/values" }
+    - { id: evse,   url: "/evse/state" }
+max_power: 23000          # W (3 x 32 A x 230 V, rounded up)
+
+blocks:
+  charger:
+    role: consumer
+    category: wallbox
+    channels:
+      power:      { endpoint: values, value_id: { ids: ids, id: 74 },  type: number, unit: W }
+      energy_in:  { endpoint: values, value_id: { ids: ids, id: 209 }, type: number, unit: kWh, counter: lifetime, resolution: 0.001 }
+      l1_power:   { endpoint: values, value_id: { ids: ids, id: 39 },  type: number, unit: W, history: false }
+      l2_power:   { endpoint: values, value_id: { ids: ids, id: 48 },  type: number, unit: W, history: false }
+      l3_power:   { endpoint: values, value_id: { ids: ids, id: 57 },  type: number, unit: W, history: false }
+      allowed_current: { endpoint: evse, path: "$.allowed_charging_current", type: number, scale: 0.001, unit: A, history: false }
+      state:      { endpoint: evse, path: "$.charger_state", type: enum, history: false,
+                    values: { 0: not_connected, 1: waiting, 2: ready, 3: charging, 4: error } }
+
+status:
+  charger:    { endpoint: evse, path: "$.charger_state", type: u16, map: warp_charger_state,
+    label: { en: Charging state, de: Ladezustand } }
+  error:      { endpoint: evse, path: "$.error_state", type: u16, map: warp_error_state,
+    label: { en: Charger error, de: Ladefehler } }
+  contactor:  { endpoint: evse, path: "$.contactor_error", type: u16, nonzero: fault, text: { en: Contactor error, de: Schützfehler },
+    label: { en: Contactor, de: Schütz } }
+  dc_fault:   { endpoint: evse, path: "$.dc_fault_current_state", type: u16, nonzero: fault, text: { en: DC residual current protection, de: DC-Fehlerstromschutz },
+    label: { en: DC residual current, de: DC-Fehlerstrom } }
+
+maps:
+  warp_charger_state:
+    0: { level: ok, text: { en: Not connected, de: Nicht verbunden } }
+    1: { level: ok, text: { en: Waiting for release, de: Wartet auf Freigabe } }
+    2: { level: ok, text: { en: Ready to charge, de: Ladebereit } }
+    3: { level: ok, text: { en: Charging, de: Lädt } }
+    4: { level: fault, text: { en: Error, de: Fehler } }
+  warp_error_state:
+    0: { level: ok, text: { en: OK, de: OK } }
+    2: { level: fault, text: { en: Switch error, de: Schalterfehler } }
+    3: { level: fault, text: { en: DC residual current monitoring error, de: Fehler DC-Fehlerstromüberwachung } }
+    4: { level: fault, text: { en: Contactor error, de: Schützfehler } }
+    5: { level: fault, text: { en: Communication error, de: Kommunikationsfehler } }

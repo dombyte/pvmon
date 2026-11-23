@@ -1,0 +1,39 @@
+FROM node:26-alpine AS frontend
+WORKDIR /frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ .
+# Same version as the binary (make docker passes it); the UI compares it with /api/v1/version.
+ARG VERSION=dev
+RUN VITE_APP_VERSION=${VERSION} npm run build
+
+FROM golang:1.27.4-alpine AS builder
+WORKDIR /app
+RUN apk --no-cache add ca-certificates tzdata
+
+COPY go.mod go.sum* ./
+RUN go mod download
+
+# Build information for the startup log and `pvmon version` (make docker passes them).
+ARG VERSION=dev
+ARG COMMIT=unknown
+ARG BUILD_DATE=unknown
+
+COPY . .
+# The web UI is embedded into the binary (go:embed), so they must exist before go build.
+COPY --from=frontend /frontend/dist ./frontend/dist
+RUN CGO_ENABLED=0 go build \
+    -ldflags="-w -s -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${BUILD_DATE}" \
+    -a \
+    -installsuffix cgo \
+    -o pvmon ./cmd
+
+
+FROM scratch
+WORKDIR /app
+COPY --from=ghcr.io/tarampampam/microcheck:1 /bin/httpcheck /bin/httpcheck
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=builder /app/pvmon /app
+EXPOSE 8080
+ENTRYPOINT ["/app/pvmon"]

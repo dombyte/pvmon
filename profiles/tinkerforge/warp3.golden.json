@@ -1,0 +1,20 @@
+{
+  "samples": [
+    {
+      "channels": {
+        "charger.power": 7360.5, "charger.energy_in": 1234500,
+        "charger.l1_power": 2453.5, "charger.l2_power": 2453.5, "charger.l3_power": 2453.5,
+        "charger.allowed_current": 16, "charger.state": "charging"
+      },
+      "status": {"charger": "ok", "error": "ok", "contactor": "ok", "dc_fault": "ok"}
+    },
+    {
+      "channels": {
+        "charger.power": 0, "charger.energy_in": 1240250,
+        "charger.l1_power": 0, "charger.l2_power": 0, "charger.l3_power": 0,
+        "charger.allowed_current": 32, "charger.state": "not_connected"
+      },
+      "status": {"charger": "ok", "error": "ok", "contactor": "ok", "dc_fault": "ok"}
+    }
+  ]
+}

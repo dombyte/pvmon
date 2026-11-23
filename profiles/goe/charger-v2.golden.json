@@ -1,0 +1,20 @@
+{
+  "samples": [
+    {
+      "channels": {
+        "charger.power": 11040, "charger.energy_in": 8765432, "charger.session_energy": 7200,
+        "charger.l1_power": 3696, "charger.l2_power": 3664, "charger.l3_power": 3680,
+        "charger.l1_voltage": 231, "charger.l1_current": 16, "charger.state": "charging"
+      },
+      "status": {"car": "ok", "err": "ok"}
+    },
+    {
+      "channels": {
+        "charger.power": 0, "charger.energy_in": 8779732, "charger.session_energy": 14300,
+        "charger.l1_power": 0, "charger.l2_power": 0, "charger.l3_power": 0,
+        "charger.l1_voltage": 232, "charger.l1_current": 0, "charger.state": "complete"
+      },
+      "status": {"car": "ok", "err": "ok"}
+    }
+  ]
+}

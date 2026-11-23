@@ -1,0 +1,128 @@
+{
+  "name": "Home",
+  "tz": "Europe/Berlin",
+  "config_rev": 0,
+  "data_since": "2026-11-18",
+  "capabilities": {
+    "pv": 2,
+    "battery": 1,
+    "grid": true,
+    "backup": true,
+    "loadpoints": {
+      "heater": 0,
+      "heatpump": 0,
+      "other": 0,
+      "wallbox": 0
+    }
+  },
+  "meters": [
+    {
+      "id": "backup",
+      "role": "backup",
+      "label": "backup",
+      "device": "wr1",
+      "series": [
+        "backup/energy_in",
+        "backup/power"
+      ]
+    },
+    {
+      "id": "balcony",
+      "role": "pv",
+      "label": "Balcony",
+      "device": "dtu",
+      "parent": "site",
+      "series": [
+        "balcony/power"
+      ]
+    },
+    {
+      "id": "battery",
+      "role": "battery",
+      "label": "battery",
+      "device": "wr1",
+      "capacity_wh": 10000,
+      "series": [
+        "battery/energy_in",
+        "battery/energy_out",
+        "battery/power",
+        "battery/soc",
+        "battery/voltage"
+      ]
+    },
+    {
+      "id": "grid",
+      "role": "grid",
+      "label": "grid",
+      "device": "wr1",
+      "series": [
+        "grid/energy_in",
+        "grid/energy_out",
+        "grid/power"
+      ]
+    },
+    {
+      "id": "pv",
+      "role": "pv",
+      "label": "Roof",
+      "device": "wr1",
+      "parent": "site",
+      "kwp": 9.9,
+      "series": [
+        "pv/energy_out",
+        "pv/power"
+      ]
+    },
+    {
+      "id": "pv-mppt1",
+      "role": "pv",
+      "label": "South",
+      "device": "wr1",
+      "parent": "pv",
+      "series": [
+        "pv-mppt1/current",
+        "pv-mppt1/energy_out",
+        "pv-mppt1/power",
+        "pv-mppt1/voltage"
+      ]
+    },
+    {
+      "id": "pv-mppt2",
+      "role": "pv",
+      "label": "West",
+      "device": "wr1",
+      "parent": "pv",
+      "series": [
+        "pv-mppt2/current",
+        "pv-mppt2/energy_out",
+        "pv-mppt2/power",
+        "pv-mppt2/voltage"
+      ]
+    }
+  ],
+  "devices": [
+    {
+      "id": "dtu",
+      "profile": "opendtu/total",
+      "verified": false,
+      "state": "unconfigured"
+    },
+    {
+      "id": "wr1",
+      "profile": "solis/s6-hybrid",
+      "verified": true,
+      "state": "unconfigured"
+    }
+  ],
+  "site_series": [
+    "site/pv",
+    "site/grid_in",
+    "site/grid_out",
+    "site/battery_in",
+    "site/battery_out",
+    "site/soc",
+    "site/consumption",
+    "site/house_rest"
+  ]
+}
+

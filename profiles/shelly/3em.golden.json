@@ -1,0 +1,22 @@
+{
+  "samples": [
+    {
+      "channels": {
+        "total.power": -1250.25, "total.energy_in": 1234501.0, "total.energy_out": 987251.0,
+        "l1.power": -420.5, "l1.voltage": 231.2, "l1.current": 1.85, "l1.pf": -0.95,
+        "l2.power": -410.25, "l2.voltage": 230.6, "l2.current": 1.8, "l2.pf": -0.94,
+        "l3.power": -419.5, "l3.voltage": 229.9, "l3.current": 1.83, "l3.pf": -0.96
+      },
+      "status": {"l1_valid": "ok", "l2_valid": "ok", "l3_valid": "ok"}
+    },
+    {
+      "channels": {
+        "total.power": 370.25, "total.energy_in": 1234751.0, "total.energy_out": 987251.0,
+        "l1.power": 150.5, "l1.voltage": 232.1, "l1.current": 0.7, "l1.pf": 0.91,
+        "l2.power": 120.25, "l2.voltage": 231.4, "l2.current": 0.6, "l2.pf": 0.88,
+        "l3.power": 99.5, "l3.voltage": 230.3, "l3.current": 0.5, "l3.pf": 0.85
+      },
+      "status": {"l1_valid": "ok", "l2_valid": "ok", "l3_valid": "fault"}
+    }
+  ]
+}

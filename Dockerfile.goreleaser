@@ -1,0 +1,17 @@
+# Built by goreleaser: the binary is prebuilt with frontend/dist and docs/dist embedded
+# (see before.hooks in .goreleaser.yaml) and copied into the build context.
+# ca-certificates and zoneinfo are arch-independent: this stage runs natively on the
+# build host, so no step here needs QEMU (release.yml still sets it up, as goreleaser requires).
+FROM --platform=$BUILDPLATFORM alpine:3.24.4 AS builder
+RUN apk --no-cache add ca-certificates tzdata
+
+FROM scratch
+WORKDIR /app
+ARG TARGETPLATFORM
+COPY --from=ghcr.io/tarampampam/microcheck:1 /bin/httpcheck /bin/httpcheck
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY $TARGETPLATFORM/pvmon /app
+
+EXPOSE 8080
+ENTRYPOINT ["/app/pvmon"]

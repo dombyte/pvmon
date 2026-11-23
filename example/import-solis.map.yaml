@@ -1,0 +1,26 @@
+# Map for "pvmon import-solis --db solis.db --map import-solis.map.yaml" (spec 7.8).
+# energy: solis key without its level suffix (pv_energy for pv_energy_daily) ->
+#   "<meter>/<channel>" of the new site. energy_consumption, household_energy and the
+#   net grid_energy are not imported: pvmon derives consumption itself.
+# status: the device that inherits the solis status log, and solis key -> status register
+#   of its profile (here solis/s6-hybrid, matched by Modbus address).
+energy:
+  pv_energy: pv/energy_out
+  battery_charge: battery/energy_in
+  battery_discharge: battery/energy_out
+  grid_import: grid/energy_in
+  grid_export: grid/energy_out
+  backup_energy: backup/energy_in
+
+status:
+  device: wr1
+  registers:
+    solis_status: operating          # 33095
+    grid_fault_1: grid_fault         # 33116
+    backup_fault_2: backup_fault     # 33117
+    battery_fault_3: battery_fault   # 33118
+    device_fault_4: device_fault_4   # 33119
+    device_fault_5: device_fault_5   # 33120
+    operating_status: operating_bits # 33121
+    battery_fault_1_bms: bms_fault_1 # 33145
+    battery_fault_2_bms: bms_fault_2 # 33146

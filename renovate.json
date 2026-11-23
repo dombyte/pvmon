@@ -1,0 +1,175 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "enabledManagers": [
+    "gomod",
+    "dockerfile",
+    "docker-compose",
+    "github-actions",
+    "npm",
+    "custom.regex"
+  ],
+  "npm": {
+    "managerFilePatterns": [
+      "/frontend/package.json/",
+      "/docs/package.json/"
+    ]
+  },
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":enableVulnerabilityAlertsWithLabel('security')",
+    ":rebaseStalePrs",
+    "group:recommended",
+    ":semanticCommits"
+  ],
+  "labels": [
+    "renovate"
+  ],
+  "constraints": {
+    "npm": "^11"
+  },
+  "ignoreUnstable": true,
+  "packageRules": [
+    {
+      "matchManagers": [
+        "gomod"
+      ],
+      "groupName": "Go dependencies",
+      "postUpdateOptions": [
+        "gomodTidy"
+      ]
+    },
+    {
+      "description": "A Go major version is a new module path (mockery/v3 -> mockery/v4) and needs code changes; update by hand",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "golangci-lint majors change the .golangci.yml format; upgrade by hand",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchPackageNames": [
+        "golangci/golangci-lint"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    },
+    {
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "groupName": "Docker images"
+    },
+    {
+      "description": "The go directive sets CI's Go version (setup-go go-version-file); keep it in step with the golang image",
+      "matchDatasources": [
+        "golang-version",
+        "docker"
+      ],
+      "matchPackageNames": [
+        "go",
+        "golang"
+      ],
+      "rangeStrategy": "bump",
+      "groupName": "Go toolchain"
+    },
+    {
+      "matchManagers": [
+        "docker-compose"
+      ],
+      "groupName": "Docker Compose"
+    },
+    {
+      "description": "The example compose files use the solis image at :latest on purpose",
+      "matchManagers": [
+        "docker-compose"
+      ],
+      "matchPackageNames": [
+        "ghcr.io/dombyte/pvmon"
+      ],
+      "enabled": false
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "GitHub Actions"
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "groupName": "npm dependencies",
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "typescript-eslint supports only typescript <6.1; lift once it supports TS 7",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchPackageNames": [
+        "typescript"
+      ],
+      "allowedVersions": "<7"
+    },
+    {
+      "description": "The Playwright image (CI e2e job, Makefile) must match @playwright/test: its browsers render the screenshot baselines",
+      "matchPackageNames": [
+        "@playwright/test",
+        "mcr.microsoft.com/playwright"
+      ],
+      "groupName": "Playwright"
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "golangci-lint version pinned in the CI action (`version: vX.Y`) and in scripts/pre-commit.sh (GOLANGCI_LINT_VERSION); the github-actions manager only tracks the action itself",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.+\\.ya?ml$/",
+        "/^scripts/.+\\.sh$/",
+        "/^Makefile$/"
+      ],
+      "matchStrings": [
+        "golangci/golangci-lint-action@\\S+\\s+with:\\s+version:\\s*(?<currentValue>v\\d+\\.\\d+(?:\\.\\d+)?)",
+        "GOLANGCI_LINT_VERSION=\"?(?<currentValue>v\\d+\\.\\d+(?:\\.\\d+)?)\"?"
+      ],
+      "depNameTemplate": "golangci/golangci-lint",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver-coerced"
+    },
+    {
+      "description": "Playwright image in the Makefile (make e2e); the workflow's container image is tracked by the github-actions manager",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^Makefile$/"
+      ],
+      "matchStrings": [
+        "PLAYWRIGHT_IMAGE := (?<depName>mcr\\.microsoft\\.com/playwright):(?<currentValue>v[\\d.]+-noble)"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 6am on monday"
+    ]
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": [
+      "security"
+    ]
+  },
+  "separateMinorPatch": true,
+  "stopUpdatingLabel": "renovate/stop_updating"
+}

@@ -1,0 +1,29 @@
+schema: 1
+profile: test/http
+version: 1
+vendor: Test
+transport: http
+http:
+  auth: digest
+  endpoints:
+    - { id: live, url: "/live" }
+    - { id: ids, url: "/ids", interval: 1h }
+max_power: 20000
+blocks:
+  total:
+    role: grid
+    roles_allowed: [grid, consumer]
+    channels:
+      power: { endpoint: live, path: "$.p", type: number, unit: W }
+      energy_in: { endpoint: live, sum: ["$.e[0]", "$.e[1]"], type: number, unit: Wh, counter: lifetime }
+      energy_out: { endpoint: live, value_id: { ids: ids, id: 209 }, type: number, unit: kWh, counter: lifetime }
+      state: { endpoint: live, path: "$.s", type: enum, values: { 0: idle, 1: busy } }
+  charger:
+    role: consumer
+    category: wallbox
+    channels:
+      power: { endpoint: live, path: "$.c.p", type: number, unit: kW }
+status:
+  errors: { endpoint: live, path: "$.errors", type: list, nonempty: fault, text: { en: Error, de: Fehler } }
+  valid: { endpoint: live, path: "$.v", type: bool, false: fault, text: { en: Invalid, de: Ungültig } }
+  code: { endpoint: live, path: "$.code", type: u16, nonzero: notice, text: { en: Code, de: Code } }

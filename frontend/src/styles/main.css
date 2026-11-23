@@ -1,0 +1,303 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+
+/* Graphite design system (spec 11.9). Components use these tokens only, never hex. */
+:root {
+  color-scheme: light;
+  --bg: #f3f4f6;
+  --ink: #0b0f17;
+  --ink-2: #566070;
+  --card: rgb(255 255 255 / 0.78);
+  --card-solid: #ffffff;
+  --tile: #ffffff;
+  --line: rgb(11 15 23 / 0.08);
+  --well: rgb(11 15 23 / 0.035);
+  --pv: #e49b0f;
+  --grid: #3b82f6;
+  --battery: #10b981;
+  --home: #8b5cf6;
+  --ev: #06b6d4;
+
+  --heatpump: #e11d48;
+
+  --heater: #c026d3;
+
+  --other: #64748b;
+  --accent: #2563eb;
+  --on-accent: #ffffff;
+  --fault: #b91c1c;
+  --notice: #b45309;
+
+  --better: #047857;
+  --shadow: 0 12px 32px -18px rgb(11 15 23 / 0.35);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0c0e12;
+  --ink: #e8eaee;
+  --ink-2: #9aa3b2;
+  --card: rgb(24 27 33 / 0.78);
+  --card-solid: #181b21;
+  --tile: #1a1d23;
+  --line: rgb(255 255 255 / 0.08);
+  --well: rgb(255 255 255 / 0.03);
+  --pv: #fbbf24;
+  --grid: #60a5fa;
+  --battery: #34d399;
+  --home: #a78bfa;
+  --ev: #22d3ee;
+
+  --heatpump: #fb7185;
+
+  --heater: #e879f9;
+
+  --other: #94a3b8;
+  --accent: #60a5fa;
+  --on-accent: #0b0f17;
+  --fault: #f87171;
+  --notice: #fbbf24;
+
+  --better: #34d399;
+  --shadow: 0 12px 32px -18px rgb(0 0 0 / 0.8);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #0c0e12;
+    --ink: #e8eaee;
+    --ink-2: #9aa3b2;
+    --card: rgb(24 27 33 / 0.78);
+    --card-solid: #181b21;
+    --tile: #1a1d23;
+    --line: rgb(255 255 255 / 0.08);
+    --well: rgb(255 255 255 / 0.03);
+    --pv: #fbbf24;
+    --grid: #60a5fa;
+    --battery: #34d399;
+    --home: #a78bfa;
+    --ev: #22d3ee;
+
+    --heatpump: #fb7185;
+
+    --heater: #e879f9;
+
+    --other: #94a3b8;
+    --accent: #60a5fa;
+    --on-accent: #0b0f17;
+    --fault: #f87171;
+    --notice: #fbbf24;
+
+    --better: #34d399;
+    --shadow: 0 12px 32px -18px rgb(0 0 0 / 0.8);
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-card: var(--card);
+  --color-card-solid: var(--card-solid);
+  --color-tile: var(--tile);
+  --color-line: var(--line);
+  --color-well: var(--well);
+  --color-pv: var(--pv);
+  --color-grid: var(--grid);
+  --color-battery: var(--battery);
+  --color-home: var(--home);
+  --color-ev: var(--ev);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-fault: var(--fault);
+  --color-notice: var(--notice);
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+  --radius-chip: 8px;
+  --radius-control: 12px;
+  --radius-card: 18px;
+  --shadow-card: var(--shadow);
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter Variable', system-ui, sans-serif;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Glass only on cards and navigation; opaque without support or on request. */
+/* A selected tab, preset or navigation item: tinted accent, readable in both schemes. */
+.toggle-on {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* A hidden chart series in a legend toggle. */
+.toggle-off {
+  color: var(--ink-2);
+  text-decoration: line-through;
+  border-style: dashed;
+}
+
+.glass {
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--card-solid);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--card-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Notch and home indicator (viewport-fit=cover). Variables, so a test can simulate a
+   notched phone. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+.safe-top {
+  padding-top: var(--safe-top);
+}
+/* Compact pages start a little below the status bar, which blurs what scrolls under it.
+   No scroll bar: phones show their own while scrolling. */
+.compact-main {
+  padding-top: 0.75rem;
+  padding-bottom: calc(5rem + var(--safe-bottom));
+  scrollbar-width: none;
+}
+.compact-main::-webkit-scrollbar {
+  display: none;
+}
+/* The bottom bar is docked: full width, only a top edge, its items above the home
+   indicator and clear of the rounded display corners (side insets, at least 0.75 rem). */
+.compact-nav {
+  border-width: 1px 0 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0.25rem max(0.75rem, var(--safe-right)) max(0.25rem, var(--safe-bottom))
+    max(0.75rem, var(--safe-left));
+}
+
+/* No page zoom (pinch or double tap); charts handle their own gestures. touch-action is
+   not inherited, so every element carries it. No grey tap flash on phones. */
+*,
+*::before,
+*::after {
+  touch-action: pan-x pan-y;
+}
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Popups (select lists): opaque, so their text never competes with the page behind. */
+.glass-solid {
+  background: var(--card-solid);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+/* Motion (spec 11.7): short and subtle; off with prefers-reduced-motion (above). */
+button,
+a,
+[role='option'] {
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.pop-enter-active,
+.pop-leave-active {
+  transition:
+    opacity 0.14s ease,
+    transform 0.14s ease;
+}
+.pop-enter-from,
+.pop-leave-to {
+  opacity: 0;
+  transform: scale(0.97);
+}
+
+/* Page change: the new page fades in, the old one leaves at once (opacity only, so the
+   layout never moves). */
+.page-enter-active {
+  transition: opacity 0.2s ease;
+}
+.page-enter-from {
+  opacity: 0;
+}
+
+/* A changed live value slides in. */
+.tick {
+  display: inline-block;
+  animation: tick 0.35s ease-out;
+}
+@keyframes tick {
+  from {
+    opacity: 0.25;
+    transform: translateY(0.25em);
+  }
+}
+
+/* A dialog takes the focus itself (autofocus): no ring around the whole sheet. */
+dialog:focus-visible {
+  outline: none;
+}
+
+/* Dialogs (calendar) rise in. */
+dialog[open] {
+  animation: rise 0.18s ease-out;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}

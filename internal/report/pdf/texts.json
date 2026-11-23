@@ -1,0 +1,426 @@
+{
+  "and.more": [
+    "and %d more",
+    "und %d weitere"
+  ],
+  "balance.diff": [
+    "Balance difference",
+    "Bilanzdifferenz"
+  ],
+  "battery": [
+    "Battery",
+    "Batterie"
+  ],
+  "battery.ratio": [
+    "Discharged ÷ charged",
+    "Entladen ÷ geladen"
+  ],
+  "best.pv": [
+    "Best PV day",
+    "Bester PV-Tag"
+  ],
+  "cat.heater": [
+    "Heater",
+    "Heizstab"
+  ],
+  "cat.heatpump": [
+    "Heat pump",
+    "Wärmepumpe"
+  ],
+  "cat.other": [
+    "Other",
+    "Sonstiges"
+  ],
+  "cat.wallbox": [
+    "Wallbox",
+    "Wallbox"
+  ],
+  "category": [
+    "Category",
+    "Kategorie"
+  ],
+  "change": [
+    "Change",
+    "Änderung"
+  ],
+  "change.none": [
+    "no comparison value",
+    "kein Vergleichswert"
+  ],
+  "chart.energy.day": [
+    "Energy per day",
+    "Energie pro Tag"
+  ],
+  "chart.energy.month": [
+    "Energy per month",
+    "Energie pro Monat"
+  ],
+  "chart.energy.year": [
+    "Energy per year",
+    "Energie pro Jahr"
+  ],
+  "chart.grid": [
+    "Grid exchange (kWh)",
+    "Netzaustausch (kWh)"
+  ],
+  "compare.matched.many": [
+    "Only the %d days with data in both periods are compared.",
+    "Verglichen werden nur die %d Tage mit Daten in beiden Zeiträumen."
+  ],
+  "compare.matched.one": [
+    "Only the %d day with data in both periods is compared.",
+    "Verglichen wird nur der %d Tag mit Daten in beiden Zeiträumen."
+  ],
+  "compare.title": [
+    "Compared with %s",
+    "Vergleich mit %s"
+  ],
+  "compare.whole": [
+    "Both periods are complete and equally long; they are compared as wholes.",
+    "Beide Zeiträume sind vollständig und gleich lang; sie werden als Ganzes verglichen."
+  ],
+  "compared.with": [
+    "compared with %s",
+    "verglichen mit %s"
+  ],
+  "comparison": [
+    "Comparison",
+    "Vergleich"
+  ],
+  "days.many": [
+    "%d days",
+    "%d Tage"
+  ],
+  "days.one": [
+    "%d day",
+    "%d Tag"
+  ],
+  "details": [
+    "Details",
+    "Details"
+  ],
+  "energy": [
+    "Energy",
+    "Energie"
+  ],
+  "estimated": [
+    "Estimated",
+    "Geschätzt"
+  ],
+  "fig.battery_charge": [
+    "Charged",
+    "Geladen"
+  ],
+  "fig.battery_discharge": [
+    "Discharged",
+    "Entladen"
+  ],
+  "fig.consumption": [
+    "Consumption",
+    "Verbrauch"
+  ],
+  "fig.grid_export": [
+    "Grid export",
+    "Einspeisung"
+  ],
+  "fig.grid_import": [
+    "Grid import",
+    "Netzbezug"
+  ],
+  "fig.pv": [
+    "PV yield",
+    "PV-Ertrag"
+  ],
+  "fig.self_consumption": [
+    "Self-consumption",
+    "Eigenverbrauch"
+  ],
+  "fig.self_sufficiency": [
+    "Self-sufficiency",
+    "Autarkie"
+  ],
+  "figure": [
+    "Figure",
+    "Kennzahl"
+  ],
+  "from.days": [
+    "from %d complete days",
+    "ab %d vollständigen Tagen"
+  ],
+  "generated": [
+    "generated %s",
+    "erstellt %s"
+  ],
+  "grid.charge": [
+    "Charged from the grid",
+    "Aus dem Netz geladen"
+  ],
+  "loadpoint": [
+    "Loadpoint",
+    "Verbraucher"
+  ],
+  "loadpoints": [
+    "Loadpoints",
+    "Ladepunkte und Verbraucher"
+  ],
+  "low.import": [
+    "Days with less than %s import",
+    "Tage mit weniger als %s Bezug"
+  ],
+  "lowest.pv": [
+    "Lowest PV day",
+    "Schwächster PV-Tag"
+  ],
+  "max.consumption": [
+    "Highest consumption",
+    "Höchster Verbrauch"
+  ],
+  "max.import": [
+    "Highest grid import",
+    "Höchster Netzbezug"
+  ],
+  "meter": [
+    "Meter",
+    "Zähler"
+  ],
+  "method": [
+    "How this report is calculated",
+    "So wird dieser Bericht berechnet"
+  ],
+  "method.balance": [
+    "Balance difference = (PV + import + discharged) − (consumption + export + charged): what the counters do not account for.",
+    "Bilanzdifferenz = (PV + Bezug + entladen) − (Verbrauch + Einspeisung + geladen): was die Zähler nicht erfassen."
+  ],
+  "method.compare": [
+    "A comparison uses the whole periods when both are complete and equally long, otherwise only the days with data in both.",
+    "Ein Vergleich nutzt die ganzen Zeiträume, wenn beide vollständig und gleich lang sind, sonst nur die Tage mit Daten in beiden."
+  ],
+  "method.data": [
+    "Data used",
+    "Verwendete Daten"
+  ],
+  "method.data.counters": [
+    "Energy comes only from the devices' energy counters, booked as differences into 15-minute values; live power is never used as energy.",
+    "Energie stammt nur aus den Energiezählern der Geräte, als Differenzen in 15-Minuten-Werte gebucht; Momentanleistung wird nie als Energie verwendet."
+  ],
+  "method.data.days": [
+    "A day counts only when every series a section needs is complete for that day.",
+    "Ein Tag zählt nur, wenn jede Reihe, die ein Abschnitt braucht, an diesem Tag vollständig ist."
+  ],
+  "method.data.zone": [
+    "Days are local days of the server time zone (%s).",
+    "Tage sind lokale Tage der Server-Zeitzone (%s)."
+  ],
+  "method.estimates": [
+    "Estimates (≈)",
+    "Schätzungen (≈)"
+  ],
+  "method.fallback": [
+    "A day with gaps in its 15-minute values uses its daily balance instead.",
+    "Ein Tag mit Lücken in den 15-Minuten-Werten nutzt stattdessen seine Tagesbilanz."
+  ],
+  "method.grid_charge": [
+    "Charged from the grid = min(charge, import) per 15 minutes.",
+    "Aus dem Netz geladen = min(Ladung, Bezug) je 15 Minuten."
+  ],
+  "method.loadpoint": [
+    "Loadpoint solar energy = loadpoint energy × solar share per 15 minutes.",
+    "Solarenergie eines Verbrauchers = seine Energie × Solaranteil je 15 Minuten."
+  ],
+  "method.missing": [
+    "Missing days are listed, never counted as 0 kWh.",
+    "Fehlende Tage werden genannt, nie als 0 kWh gezählt."
+  ],
+  "method.ratio": [
+    "Discharged ÷ charged is the plain quotient of the battery counters, not an efficiency.",
+    "Entladen ÷ geladen ist der einfache Quotient der Batteriezähler, kein Wirkungsgrad."
+  ],
+  "method.rounding": [
+    "Values are rounded to one decimal, the same digits as on the Reports page.",
+    "Werte sind auf eine Nachkommastelle gerundet, dieselben Ziffern wie auf der Berichtsseite."
+  ],
+  "method.rules": [
+    "Rules",
+    "Regeln"
+  ],
+  "method.self_consumption": [
+    "Self-consumption = (PV − grid export) ÷ PV, from the summed energy, never an average of daily ratios.",
+    "Eigenverbrauch = (PV − Einspeisung) ÷ PV, aus der summierten Energie, nie als Mittel täglicher Quoten."
+  ],
+  "method.self_sufficiency": [
+    "Self-sufficiency = (consumption − grid import) ÷ consumption, from the summed energy.",
+    "Autarkie = (Verbrauch − Netzbezug) ÷ Verbrauch, aus der summierten Energie."
+  ],
+  "method.solar_share": [
+    "Per 15 minutes: solar share = 1 − import ÷ consumption, limited to 0…1.",
+    "Je 15 Minuten: Solaranteil = 1 − Bezug ÷ Verbrauch, begrenzt auf 0…1."
+  ],
+  "method.sources": [
+    "Consumption sources: grid = import, battery = discharged − charged from the grid, solar = the rest; each capped so they add up to the consumption.",
+    "Herkunft des Verbrauchs: Netz = Bezug, Batterie = entladen − aus dem Netz geladen, Solar = Rest; jeweils begrenzt, sodass die Summe dem Verbrauch entspricht."
+  ],
+  "method.stable": [
+    "Battery quotient and balance difference need at least %d complete days.",
+    "Batteriequotient und Bilanzdifferenz brauchen mindestens %d vollständige Tage."
+  ],
+  "method.standard": [
+    "Standard figures",
+    "Standardkennzahlen"
+  ],
+  "method.today": [
+    "A report ends yesterday: today is still running.",
+    "Ein Bericht endet gestern: heute läuft noch."
+  ],
+  "missing": [
+    "Missing",
+    "Fehlend"
+  ],
+  "note.estimates": [
+    "≈ marks this app's estimates from 15-minute values; the last page explains them.",
+    "≈ kennzeichnet Schätzungen dieser App aus 15-Minuten-Werten; die letzte Seite erklärt sie."
+  ],
+  "note.fallback.many": [
+    "%d days had gaps in their 15-minute values; their estimates use the daily balance.",
+    "%d Tage hatten Lücken in den 15-Minuten-Werten; ihre Schätzungen nutzen die Tagesbilanz."
+  ],
+  "note.fallback.one": [
+    "%d day had gaps in its 15-minute values; its estimates use the daily balance.",
+    "%d Tag hatte Lücken in den 15-Minuten-Werten; seine Schätzungen nutzen die Tagesbilanz."
+  ],
+  "note.incomplete": [
+    "%d of %d days have complete data. Days without data are left out, never counted as 0 kWh.",
+    "%d von %d Tagen haben vollständige Daten. Tage ohne Daten fehlen, sie zählen nie als 0 kWh."
+  ],
+  "note.today": [
+    "Today is still running and not part of the report; it ends yesterday.",
+    "Heute läuft noch und ist nicht Teil des Berichts; er endet gestern."
+  ],
+  "page": [
+    "Page %d of %d",
+    "Seite %d von %d"
+  ],
+  "patterns": [
+    "Patterns",
+    "Auffälligkeiten"
+  ],
+  "period": [
+    "Period",
+    "Zeitraum"
+  ],
+  "points": [
+    "pts",
+    "Pkt."
+  ],
+  "profile": [
+    "Load profile (mean consumption)",
+    "Lastprofil (mittlerer Verbrauch)"
+  ],
+  "profile.peak": [
+    "Highest 15-minute mean: %s on %s.",
+    "Höchster 15-Minuten-Mittelwert: %s am %s."
+  ],
+  "pv.sources": [
+    "PV sources",
+    "PV-Quellen"
+  ],
+  "quality": [
+    "Data quality",
+    "Datenqualität"
+  ],
+  "quality.days": [
+    "%d of %d days complete.",
+    "%d von %d Tagen vollständig."
+  ],
+  "quality.missing": [
+    "Missing:",
+    "Fehlend:"
+  ],
+  "share": [
+    "Share",
+    "Anteil"
+  ],
+  "solar": [
+    "Solar",
+    "Solar"
+  ],
+  "solar.share": [
+    "Solar share",
+    "Solaranteil"
+  ],
+  "source": [
+    "Source",
+    "Quelle"
+  ],
+  "specific.yield": [
+    "Specific yield",
+    "Spez. Ertrag"
+  ],
+  "split.battery": [
+    "Battery",
+    "Batterie"
+  ],
+  "split.charged": [
+    "Charged",
+    "Geladen"
+  ],
+  "split.direct": [
+    "Used directly",
+    "Direkt verbraucht"
+  ],
+  "split.export": [
+    "Exported",
+    "Eingespeist"
+  ],
+  "split.grid": [
+    "Grid",
+    "Netz"
+  ],
+  "split.pv": [
+    "Where the PV energy went",
+    "Wohin der PV-Strom ging"
+  ],
+  "split.solar": [
+    "Solar",
+    "Solar"
+  ],
+  "split.sources": [
+    "Where the consumption came from",
+    "Woher der Verbrauch kam"
+  ],
+  "sum": [
+    "Total",
+    "Summe"
+  ],
+  "table.day": [
+    "Table per day",
+    "Tabelle pro Tag"
+  ],
+  "table.month": [
+    "Table per month",
+    "Tabelle pro Monat"
+  ],
+  "table.unit": [
+    "Energy in kWh; (n/m) = days with data of the days in the period.",
+    "Energie in kWh; (n/m) = Tage mit Daten von den Tagen des Zeitraums."
+  ],
+  "table.year": [
+    "Table per year",
+    "Tabelle pro Jahr"
+  ],
+  "this.period": [
+    "This period",
+    "Dieser Zeitraum"
+  ],
+  "title": [
+    "Energy report",
+    "Energiebericht"
+  ],
+  "weekday.consumption": [
+    "Mean consumption Mon–Fri",
+    "Mittlerer Verbrauch Mo–Fr"
+  ],
+  "weekend.consumption": [
+    "Mean consumption Sat–Sun",
+    "Mittlerer Verbrauch Sa–So"
+  ]
+}

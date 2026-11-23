@@ -1,0 +1,47 @@
+{
+  "profile": "shelly/pro-3em",
+  "version": 2,
+  "source": "documentation",
+  "samples": [
+    {
+      "at": "2026-11-19T12:00:00Z",
+      "json": {
+        "live": {
+          "id": 0,
+          "a_current": 1.9, "a_voltage": 230.9, "a_act_power": -430.2, "a_aprt_power": 438.7, "a_pf": -0.98,
+          "b_current": 1.8, "b_voltage": 231.4, "b_act_power": -410.5, "b_aprt_power": 416.5, "b_pf": -0.99,
+          "c_current": 1.85, "c_voltage": 229.8, "c_act_power": -419.9, "c_aprt_power": 425.1, "c_pf": -0.99,
+          "n_current": null, "total_current": 5.55, "total_act_power": -1260.6, "total_aprt_power": 1280.3,
+          "errors": []
+        },
+        "energy": {
+          "id": 0,
+          "a_total_act_energy": 56789.5, "a_total_act_ret_energy": 41234.1,
+          "b_total_act_energy": 55012.3, "b_total_act_ret_energy": 40111.0,
+          "c_total_act_energy": 54987.2, "c_total_act_ret_energy": 39876.9,
+          "total_act": 166789.0, "total_act_ret": 121222.0
+        }
+      }
+    },
+    {
+      "at": "2026-11-19T17:30:00Z",
+      "json": {
+        "live": {
+          "id": 0,
+          "a_current": 0.95, "a_voltage": 231.8, "a_act_power": 210.4, "a_aprt_power": 220.2, "a_pf": 0.96,
+          "b_current": 0.8, "b_voltage": 232.2, "b_act_power": 180.3, "b_aprt_power": 185.8, "b_pf": 0.97,
+          "c_current": 0.7, "c_voltage": 231.0, "c_act_power": 150.1, "c_aprt_power": 161.7, "c_pf": 0.93,
+          "n_current": null, "total_current": 2.45, "total_act_power": 540.8, "total_aprt_power": 567.7,
+          "errors": []
+        },
+        "energy": {
+          "id": 0,
+          "a_total_act_energy": 56839.5, "a_total_act_ret_energy": 41234.1,
+          "b_total_act_energy": 55050.3, "b_total_act_ret_energy": 40111.0,
+          "c_total_act_energy": 55020.2, "c_total_act_ret_energy": 39876.9,
+          "total_act": 166910.0, "total_act_ret": 121222.0
+        }
+      }
+    }
+  ]
+}

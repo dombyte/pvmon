@@ -1,0 +1,29 @@
+# pvmon with the example config: adjust config.yaml, then `docker compose up -d`
+# and open http://<host>:8080.
+services:
+  pvmon:
+    image: ghcr.io/dombyte/pvmon:latest
+    restart: unless-stopped # pvmon never restarts itself (exit 1 on fatal errors)
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: Europe/Berlin # the site time zone; days and buckets follow it
+      # WARP_PASSWORD: ${WARP_PASSWORD} # only with WARP login, see config.yaml
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - pvmon-data:/app/data
+    # To keep the data in a host folder you own instead of the volume, create the folder
+    # first and use:  user: "1000:1000"  and  - ./pvmon-data:/app/data
+    # Only for an RS485 adapter on the host (connection rtu:///dev/ttyUSB0):
+    # devices:
+    #   - /dev/ttyUSB0:/dev/ttyUSB0
+    healthcheck:
+      test: ["CMD", "/bin/httpcheck", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    stop_grace_period: 35s # shutdown deadline is 30 s
+
+volumes:
+  pvmon-data:

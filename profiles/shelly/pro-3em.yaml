@@ -1,0 +1,56 @@
+# Draft profile, schema: SPEC.md section 4.2.
+schema: 1
+profile: shelly/pro-3em
+version: 3
+vendor: Shelly
+models: ["SPEM-003CEBEU", "Pro 3EM"]
+transport: http
+verified: true            # field names from the Gen2 API docs; behaviour checked on a real device
+http:
+  auth: digest            # only when authentication is enabled on the device
+  endpoints:
+    - { id: live,   url: "/rpc/EM.GetStatus?id=0" }
+    - { id: energy, url: "/rpc/EMData.GetStatus?id=0" }
+max_power: 70000
+netting: meter
+
+blocks:
+  total:
+    role: grid
+    roles_allowed: [grid, consumer]
+    channels:
+      power:      { endpoint: live,   path: "$.total_act_power", type: number, unit: W }
+      energy_in:  { endpoint: energy, path: "$.total_act",       type: number, unit: Wh, counter: lifetime }
+      energy_out: { endpoint: energy, path: "$.total_act_ret",   type: number, unit: Wh, counter: lifetime }
+  a:
+    role: phase
+    channels:
+      power:      { endpoint: live,   path: "$.a_act_power", type: number, unit: W, history: false }
+      voltage:    { endpoint: live,   path: "$.a_voltage",   type: number, unit: V, history: false }
+      current:    { endpoint: live,   path: "$.a_current",   type: number, unit: A, history: false }
+      pf:         { endpoint: live,   path: "$.a_pf",        type: number, unit: "", history: false }
+      energy_in:  { endpoint: energy, path: "$.a_total_act_energy",     type: number, unit: Wh, counter: lifetime, history: false }
+      energy_out: { endpoint: energy, path: "$.a_total_act_ret_energy", type: number, unit: Wh, counter: lifetime, history: false }
+  b:
+    role: phase
+    channels:
+      power:      { endpoint: live,   path: "$.b_act_power", type: number, unit: W, history: false }
+      voltage:    { endpoint: live,   path: "$.b_voltage",   type: number, unit: V, history: false }
+      current:    { endpoint: live,   path: "$.b_current",   type: number, unit: A, history: false }
+      pf:         { endpoint: live,   path: "$.b_pf",        type: number, unit: "", history: false }
+      energy_in:  { endpoint: energy, path: "$.b_total_act_energy",     type: number, unit: Wh, counter: lifetime, history: false }
+      energy_out: { endpoint: energy, path: "$.b_total_act_ret_energy", type: number, unit: Wh, counter: lifetime, history: false }
+  c:
+    role: phase
+    channels:
+      power:      { endpoint: live,   path: "$.c_act_power", type: number, unit: W, history: false }
+      voltage:    { endpoint: live,   path: "$.c_voltage",   type: number, unit: V, history: false }
+      current:    { endpoint: live,   path: "$.c_current",   type: number, unit: A, history: false }
+      pf:         { endpoint: live,   path: "$.c_pf",        type: number, unit: "", history: false }
+      energy_in:  { endpoint: energy, path: "$.c_total_act_energy",     type: number, unit: Wh, counter: lifetime, history: false }
+      energy_out: { endpoint: energy, path: "$.c_total_act_ret_energy", type: number, unit: Wh, counter: lifetime, history: false }
+
+status:
+  errors: { endpoint: live, path: "$.errors", type: list, nonempty: fault,
+            text: { en: Meter error, de: Zählerfehler },
+            label: { en: Meter errors, de: Zählerfehler } }

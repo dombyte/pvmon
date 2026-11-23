@@ -1,0 +1,74 @@
+// ECharts option of the history bars (spec 11.7, 11.8). Pure: everything the chart shows
+// comes in as arguments, so it is tested without a DOM or ECharts.
+import type { EChartsCoreOption } from 'echarts/core'
+import type { Tokens } from '@/charts/tokens'
+import { tooltipBody, tooltipRow } from '@/charts/tooltip'
+import { formatEnergy, formatNumber, type Lang } from '@/format'
+import { tokenOf, type HistoryKey, type PeriodPoint } from './points'
+
+export interface HistoryText {
+  lang: Lang
+  names: Record<HistoryKey, string>
+  noData: string
+  /** Axis label of a period. */
+  axis: (p: PeriodPoint) => string
+  /** Tooltip heading of a period. */
+  title: (p: PeriodPoint) => string
+}
+
+const whPerKwh = 1000
+const barMaxWidth = 14
+const barRadius = 4
+const gridPad = 8
+const dimmed = 0.45
+
+/** Tooltip body of one period: every visible series. */
+export function tooltipHTML(p: PeriodPoint, keys: HistoryKey[], t: Tokens, x: HistoryText): string {
+  const rows = keys.map((k) => {
+    const v = p.values[k]
+    return tooltipRow(x.names[k], v === null ? x.noData : formatEnergy(v, x.lang), t[tokenOf[k]])
+  })
+  return tooltipBody(x.title(p), rows)
+}
+
+/**
+ * Bars per visible key in kWh. A period without data has no bar (a gap, never a 0 bar);
+ * bars outside the selected period are dimmed while one is selected.
+ */
+export function historyOption(
+  points: PeriodPoint[],
+  keys: HistoryKey[],
+  selected: number | null,
+  t: Tokens,
+  x: HistoryText,
+  animate: boolean,
+): EChartsCoreOption {
+  return {
+    animation: animate,
+    grid: { left: gridPad, right: gridPad, top: gridPad, bottom: gridPad, outerBoundsMode: 'same' },
+    xAxis: { type: 'category', data: points.map(x.axis) },
+    yAxis: { type: 'value', min: 0, axisLabel: { formatter: (v: number) => formatNumber(v, x.lang, 1, 0) } },
+    tooltip: {
+      trigger: 'axis',
+      triggerOn: 'mousemove|click',
+      confine: true,
+      axisPointer: { type: 'shadow', shadowStyle: { color: t.well } },
+      formatter: (params: { dataIndex: number }[]) => {
+        const p = points[params[0]?.dataIndex ?? -1]
+        return p ? tooltipHTML(p, keys, t, x) : ''
+      },
+    },
+    series: keys.map((k) => ({
+      type: 'bar',
+      name: x.names[k],
+      barMaxWidth,
+      itemStyle: { color: t[tokenOf[k]], borderRadius: [barRadius, barRadius, 0, 0] },
+      data: points.map((p, i) => {
+        const v = p.values[k]
+        if (v === null) return null
+        const opacity = selected === null || selected === i ? 1 : dimmed
+        return { value: v / whPerKwh, itemStyle: { opacity } }
+      }),
+    })),
+  }
+}

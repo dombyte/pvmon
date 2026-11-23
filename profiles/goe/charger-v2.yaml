@@ -1,0 +1,54 @@
+# Draft profile, schema: SPEC.md section 4.2.
+schema: 1
+profile: goe/charger-v2
+version: 2
+vendor: go-e
+models: ["go-eCharger HOMEfix", "go-eCharger HOME+", "go-eCharger Gemini", "go-eCharger Gemini flex"]
+transport: http
+verified: false           # key list official, nrg units unverified; no charging dump yet
+http:
+  endpoints:
+    - { id: status, url: "/api/status?filter=nrg,eto,wh,car,err,modelStatus" }
+max_power: 23000
+
+blocks:
+  charger:
+    role: consumer
+    category: wallbox
+    channels:
+      power:      { endpoint: status, path: "$.nrg[11]", type: number, unit: W }
+      energy_in:  { endpoint: status, path: "$.eto", type: number, unit: Wh, counter: lifetime }
+      session_energy: { endpoint: status, path: "$.wh", type: number, unit: Wh, history: false }
+      l1_power:   { endpoint: status, path: "$.nrg[7]", type: number, unit: W, history: false }
+      l2_power:   { endpoint: status, path: "$.nrg[8]", type: number, unit: W, history: false }
+      l3_power:   { endpoint: status, path: "$.nrg[9]", type: number, unit: W, history: false }
+      l1_voltage: { endpoint: status, path: "$.nrg[0]", type: number, unit: V, history: false }
+      l1_current: { endpoint: status, path: "$.nrg[4]", type: number, unit: A, history: false }
+      state:      { endpoint: status, path: "$.car", type: enum, history: false,
+                    values: { 0: error, 1: idle, 2: charging, 3: waiting, 4: complete, 5: error } }
+
+status:
+  car: { endpoint: status, path: "$.car", type: u16, map: goe_car,
+    label: { en: Charging state, de: Ladezustand } }
+  err: { endpoint: status, path: "$.err", type: u16, map: goe_err,
+    label: { en: Charger error, de: Ladefehler } }
+
+maps:
+  goe_car:
+    0: { level: fault, text: { en: Unknown or error, de: Unbekannt oder Fehler } }
+    1: { level: ok, text: { en: Idle, de: Bereit } }
+    2: { level: ok, text: { en: Charging, de: Lädt } }
+    3: { level: ok, text: { en: Waiting for car, de: Wartet auf Fahrzeug } }
+    4: { level: ok, text: { en: Charging complete, de: Laden beendet } }
+    5: { level: fault, text: { en: Error, de: Fehler } }
+  goe_err:
+    default: { level: fault }
+    0: { level: ok, text: { en: No error, de: Kein Fehler } }
+    1: { level: fault, text: { en: Residual current AC, de: Fehlerstrom AC } }
+    2: { level: fault, text: { en: Residual current DC, de: Fehlerstrom DC } }
+    3: { level: fault, text: { en: Phase error, de: Phasenfehler } }
+    4: { level: fault, text: { en: Overvoltage, de: Überspannung } }
+    5: { level: fault, text: { en: Overcurrent, de: Überstrom } }
+    6: { level: fault, text: { en: Diode error, de: Diodenfehler } }
+    7: { level: fault, text: { en: Invalid proximity pilot, de: Ungültiger Proximity-Pilot } }
+    8: { level: fault, text: { en: Invalid ground, de: Erdung ungültig } }

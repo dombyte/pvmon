@@ -1,0 +1,93 @@
+# Mock generation: go tool mockery
+# Mocks live next to the consumer package in internal/<pkg>/mocks and are never hand-edited.
+# Add each interface under its package as it is created (AGENTS.md section 4: every
+# interface has a mock):
+#   github.com/dombyte/pvmon/internal/<pkg>:
+#     interfaces:
+#       <Name>:
+template: testify
+template-data:
+  unroll-variadic: true
+dir: "{{.InterfaceDir}}/mocks"
+structname: "Mock{{.InterfaceName}}"
+pkgname: mocks
+filename: "mock_{{.InterfaceName | snakecase}}.go"
+packages:
+  github.com/dombyte/pvmon/internal/collector:
+    interfaces:
+      ModbusReader:
+      HTTPReader:
+      Source:
+      LiveCache:
+      Publisher:
+      Transport:
+  github.com/dombyte/pvmon/internal/derive:
+    interfaces:
+      Reader:
+      Cache:
+  github.com/dombyte/pvmon/internal/health:
+    interfaces:
+      Component:
+      Reporter:
+  github.com/dombyte/pvmon/internal/livecache:
+    interfaces:
+      Publisher:
+  github.com/dombyte/pvmon/internal/maintenance:
+    interfaces:
+      SampleSource:
+      SolisSource:
+  github.com/dombyte/pvmon/internal/sitecalc:
+    interfaces:
+      Cache:
+      Bus:
+  github.com/dombyte/pvmon/internal/ws:
+    interfaces:
+      Cache:
+      Bus:
+  github.com/dombyte/pvmon/internal/util:
+    interfaces:
+      Clock:
+      Timer:
+      Ticker:
+  github.com/dombyte/pvmon/internal/service:
+    interfaces:
+      SnapshotSource:
+      FirstSlotSource:
+      EnergyDeriver:
+      GaugeDeriver:
+      StatusReader:
+      ProfileSource:
+  github.com/dombyte/pvmon/internal/http/handler:
+    interfaces:
+      HealthService:
+      SiteService:
+      EnergyService:
+      GaugeService:
+      DevicesService:
+      ReportService:
+      AuthService:
+      ConfigService:
+      ProfileLister:
+  github.com/dombyte/pvmon/internal/http/middleware:
+    interfaces:
+      Authenticator:
+  github.com/dombyte/pvmon/internal/storage:
+    interfaces:
+      CollectorStore:
+      DeriveStore:
+      ReadStore:
+      ImportStore:
+      AuthStore:
+      ConfigStore:
+  github.com/dombyte/pvmon/internal/configstore:
+    interfaces:
+      Store:
+      Sealer:
+  github.com/dombyte/pvmon/internal/transport/http:
+    interfaces:
+      Reader:
+  github.com/dombyte/pvmon/internal/transport/modbus:
+    interfaces:
+      Client:
+      Opener:
+      Reader:

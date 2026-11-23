@@ -1,0 +1,30 @@
+{
+  "samples": [
+    {
+      "channels": {
+        "total.power": -1850.25, "total.energy_in": 1234500, "total.energy_out": 987250,
+        "total.frequency": 50.0,
+        "l1.voltage": 230.5, "l1.current": 2.5, "l1.power": -400.5, "l1.pf": 0.875,
+        "l1.energy_in": 411500, "l1.energy_out": 329000,
+        "l2.voltage": 231.25, "l2.current": 3.25, "l2.power": -750.25, "l2.pf": 0.9375,
+        "l2.energy_in": 412250, "l2.energy_out": 329250,
+        "l3.voltage": 229.75, "l3.current": 1.5, "l3.power": -699.5, "l3.pf": 0.75,
+        "l3.energy_in": 410750, "l3.energy_out": 329000
+      },
+      "status": {}
+    },
+    {
+      "channels": {
+        "total.power": 860.75, "total.energy_in": 1234750, "total.energy_out": 987250,
+        "total.frequency": 49.96875,
+        "l1.voltage": 232.0, "l1.current": 1.5, "l1.power": 340.25, "l1.pf": 0.9375,
+        "l1.energy_in": 411625, "l1.energy_out": 329000,
+        "l2.voltage": 231.5, "l2.current": 1.25, "l2.power": 290.5, "l2.pf": 0.875,
+        "l2.energy_in": 412375, "l2.energy_out": 329250,
+        "l3.voltage": 230.25, "l3.current": 1.0, "l3.power": 230.0, "l3.pf": 0.8125,
+        "l3.energy_in": 410750, "l3.energy_out": 329000
+      },
+      "status": {}
+    }
+  ]
+}

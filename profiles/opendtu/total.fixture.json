@@ -1,0 +1,20 @@
+{
+  "profile": "opendtu/total",
+  "version": 1,
+  "source": "documentation",
+  "samples": [
+    {
+      "at": "2026-11-19T12:00:00Z",
+      "json": {
+        "live": {
+          "total": {
+            "Power": {"v": 712.4, "u": "W", "d": 1},
+            "YieldDay": {"v": 1834, "u": "Wh", "d": 0},
+            "YieldTotal": {"v": 1523.871, "u": "kWh", "d": 3}
+          },
+          "hints": {"time_sync": false, "radio_problem": false}
+        }
+      }
+    }
+  ]
+}

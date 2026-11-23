@@ -1,0 +1,128 @@
+{
+  "name": "Home",
+  "tz": "Europe/Berlin",
+  "config_rev": 0,
+  "data_since": "2026-11-18",
+  "capabilities": {
+    "pv": 1,
+    "battery": 1,
+    "grid": true,
+    "backup": false,
+    "loadpoints": {
+      "heater": 0,
+      "heatpump": 0,
+      "other": 0,
+      "wallbox": 0
+    }
+  },
+  "meters": [
+    {
+      "id": "battery",
+      "role": "battery",
+      "label": "battery",
+      "device": "wr1",
+      "capacity_wh": 10000,
+      "series": [
+        "battery/energy_in",
+        "battery/energy_out",
+        "battery/power",
+        "battery/soc",
+        "battery/voltage"
+      ]
+    },
+    {
+      "id": "grid",
+      "role": "grid",
+      "label": "grid",
+      "device": "wr1",
+      "series": [
+        "grid/energy_in",
+        "grid/energy_out",
+        "grid/power"
+      ]
+    },
+    {
+      "id": "mppt1",
+      "role": "pv",
+      "label": "mppt1",
+      "device": "wr1",
+      "parent": "pv",
+      "series": [
+        "mppt1/current",
+        "mppt1/energy_out",
+        "mppt1/power",
+        "mppt1/voltage"
+      ]
+    },
+    {
+      "id": "mppt2",
+      "role": "pv",
+      "label": "mppt2",
+      "device": "wr1",
+      "parent": "pv",
+      "series": [
+        "mppt2/current",
+        "mppt2/energy_out",
+        "mppt2/power",
+        "mppt2/voltage"
+      ]
+    },
+    {
+      "id": "mppt3",
+      "role": "pv",
+      "label": "mppt3",
+      "device": "wr1",
+      "parent": "pv",
+      "series": [
+        "mppt3/current",
+        "mppt3/energy_out",
+        "mppt3/power",
+        "mppt3/voltage"
+      ]
+    },
+    {
+      "id": "mppt4",
+      "role": "pv",
+      "label": "mppt4",
+      "device": "wr1",
+      "parent": "pv",
+      "series": [
+        "mppt4/current",
+        "mppt4/energy_out",
+        "mppt4/power",
+        "mppt4/voltage"
+      ]
+    },
+    {
+      "id": "pv",
+      "role": "pv",
+      "label": "pv",
+      "device": "wr1",
+      "parent": "site",
+      "kwp": 12,
+      "series": [
+        "pv/energy_out",
+        "pv/power"
+      ]
+    }
+  ],
+  "devices": [
+    {
+      "id": "wr1",
+      "profile": "solis/s6-hybrid",
+      "verified": true,
+      "state": "unconfigured"
+    }
+  ],
+  "site_series": [
+    "site/pv",
+    "site/grid_in",
+    "site/grid_out",
+    "site/battery_in",
+    "site/battery_out",
+    "site/soc",
+    "site/consumption",
+    "site/house_rest"
+  ]
+}
+

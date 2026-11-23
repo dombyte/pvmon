@@ -1,0 +1,264 @@
+# Profile, schema: SPEC.md section 4.2.
+schema: 1
+profile: solis/s6-hybrid
+version: 5
+vendor: Solis
+models: ["S6-EH1P*", "S6-EH3P*", "RHI-*"]
+transport: modbus
+verified: true            # register map verified on a real device; fixture pending
+modbus: { function: input, byte_order: big, word_order: big }
+read:
+  mode: range
+  max_registers: 125
+  # ranges: [[33000, 33096], [33116, 33180], [33251, 33286], [33580, 33596]]
+  ranges:            # 112 registers
+    - [33035, 33058]   # 33035, PV strings; pv.power u32 ends 33058
+    - [33094, 33150]   # 33095, faults 33116–33121, battery 33133/33135/33139, backup 33148, battery.power u32 33149–33150
+    - [33162, 33167]   # battery daily counters
+    - [33263, 33286]   # grid.power i32, lifetime counters u32 33283–33286
+    - [33596, 33596]   # backup.energy_in
+max_power: 70000          # W, glitch guard for the grid's lifetime counters: the external
+                          # meter's range (3 x 100 A x 230 V, rounded up), not the inverter's
+netting: app
+
+blocks:
+  pv:                     # whole PV field; strings pv1–pv4 may sit below it (parent: <pv meter>)
+    role: pv
+    channels:
+      power:      { addr: 33057, type: u32, scale: 1, unit: W }
+      energy_out: { addr: 33035, type: u16, scale: 0.1, unit: kWh, counter: daily_reset, reset_group: daily, resolution: 0.1 }
+  pv1:
+    role: pv
+    channels:
+      voltage:    { addr: 33049, type: u16, scale: 0.1, unit: V, history: false }
+      current:    { addr: 33050, type: u16, scale: 0.1, unit: A, history: false }
+      power:      { product: [pv1.voltage, pv1.current], unit: W }
+      energy_out: { derive: share, of: pv.energy_out, by: power }   # estimated
+  pv2:
+    role: pv
+    channels:
+      voltage:    { addr: 33051, type: u16, scale: 0.1, unit: V, history: false }
+      current:    { addr: 33052, type: u16, scale: 0.1, unit: A, history: false }
+      power:      { product: [pv2.voltage, pv2.current], unit: W }
+      energy_out: { derive: share, of: pv.energy_out, by: power }
+  pv3:                    # 4-MPPT models only
+    role: pv
+    channels:
+      voltage:    { addr: 33053, type: u16, scale: 0.1, unit: V, history: false }
+      current:    { addr: 33054, type: u16, scale: 0.1, unit: A, history: false }
+      power:      { product: [pv3.voltage, pv3.current], unit: W }
+      energy_out: { derive: share, of: pv.energy_out, by: power }
+  pv4:
+    role: pv
+    channels:
+      voltage:    { addr: 33055, type: u16, scale: 0.1, unit: V, history: false }
+      current:    { addr: 33056, type: u16, scale: 0.1, unit: A, history: false }
+      power:      { product: [pv4.voltage, pv4.current], unit: W }
+      energy_out: { derive: share, of: pv.energy_out, by: power }
+  battery:
+    role: battery
+    channels:
+      power:      { addr: 33149, type: u32, scale: 1, unit: W, sign_from: { addr: 33135, type: u16, discharge_when: 1 } }
+      soc:        { addr: 33139, type: u16, scale: 1, unit: "%" }
+      energy_in:  { addr: 33163, type: u16, scale: 0.1, unit: kWh, counter: daily_reset, reset_group: daily, resolution: 0.1 }
+      energy_out: { addr: 33167, type: u16, scale: 0.1, unit: kWh, counter: daily_reset, reset_group: daily, resolution: 0.1 }
+      voltage:    { addr: 33133, type: u16, scale: 0.1, unit: V, history: false }
+  grid:                   # the inverter's external meter, as evcc's solis-hybrid templates
+    role: grid
+    roles_allowed: [grid, inverter]
+    channels:
+      power:      { addr: 33263, type: i32, scale: 1, unit: W, invert: true }   # device: + = export
+      energy_in:  { addr: 33283, type: u32, scale: 0.01, unit: kWh, counter: lifetime }
+      energy_out: { addr: 33285, type: u32, scale: 0.01, unit: kWh, counter: lifetime }
+  backup:
+    role: backup
+    channels:
+      power:      { addr: 33148, type: u16, scale: 1, unit: W }
+      energy_in:  { addr: 33596, type: u16, scale: 0.1, unit: kWh, counter: daily_reset, reset_group: daily, resolution: 0.1 }
+
+status:
+  operating:  { addr: 33095, type: u16, map: solis_status,
+    label: { en: Operating state, de: Betriebszustand } }
+  grid_fault: { addr: 33116, type: bitfield, map: solis_fault_33116,
+    label: { en: Grid faults, de: Netzfehler } }
+  backup_fault: { addr: 33117, type: bitfield, map: solis_fault_33117,
+    label: { en: Backup faults, de: Backup-Fehler } }
+  battery_fault: { addr: 33118, type: bitfield, map: solis_fault_33118,
+    label: { en: Battery faults, de: Batteriefehler } }
+  device_fault_4: { addr: 33119, type: bitfield, map: solis_fault_33119,
+    label: { en: Device faults 1, de: Gerätefehler 1 } }
+  device_fault_5: { addr: 33120, type: bitfield, map: solis_fault_33120,
+    label: { en: Device faults 2, de: Gerätefehler 2 } }
+  operating_bits: { addr: 33121, type: bitfield, map: solis_operating,
+    label: { en: Operating flags, de: Betriebsflags } }
+  bms_fault_1: { addr: 33145, type: bitfield, map: solis_bms_fault_1,
+    label: { en: BMS faults 1, de: BMS-Fehler 1 } }
+  bms_fault_2: { addr: 33146, type: bitfield, map: solis_bms_fault_2,
+    label: { en: BMS faults 2, de: BMS-Fehler 2 } }
+
+maps:
+  solis_status:
+    default: { level: fault }                       # any code >= 0x1000 not listed
+    0x0000: { level: notice, text: { en: "Waiting", de: "Wartend" } }
+    0x0001: { level: ok, text: { en: "Open run", de: "Anlauf" } }
+    0x0002: { level: ok, text: { en: "Soft run", de: "Sanftanlauf" } }
+    0x0003: { level: ok, text: { en: "Generating", de: "Erzeugt" } }
+    0x0004: { level: notice, text: { en: "Standby", de: "Standby" } }
+    0x0005: { level: notice, text: { en: "Standby synchronize", de: "Standby-Synchronisation" } }
+    0x0006: { level: notice, text: { en: "Grid to load", de: "Netz versorgt Last" } }
+    0x000F: { level: ok, text: { en: "Normal running", de: "Normalbetrieb" } }
+    0x1004: { level: fault, text: { en: "Grid off", de: "Netz aus" } }
+    0x1010: { level: fault, text: { en: "Grid overvoltage", de: "Netzüberspannung" } }
+    0x1011: { level: fault, text: { en: "Grid undervoltage", de: "Netzunterspannung" } }
+    0x1012: { level: fault, text: { en: "Grid over-frequency", de: "Netzüberfrequenz" } }
+    0x1013: { level: fault, text: { en: "Grid under-frequency", de: "Netzunterfrequenz" } }
+    0x1014: { level: fault, text: { en: "Grid impedance too high / reverse current", de: "Netzimpedanz zu hoch / Rückstrom" } }
+    0x1015: { level: fault, text: { en: "No grid", de: "Kein Netz" } }
+    0x1016: { level: fault, text: { en: "Unbalanced grid (phase fault)", de: "Netzunsymmetrie (Phasenfehler)" } }
+    0x1017: { level: fault, text: { en: "Grid frequency fluctuation", de: "Netzfrequenzschwankung" } }
+    0x1018: { level: fault, text: { en: "Grid overcurrent", de: "Netzüberstrom" } }
+    0x1019: { level: fault, text: { en: "Grid current sampling error", de: "Netzstrom-Messfehler" } }
+    0x1020: { level: fault, text: { en: "DC overvoltage", de: "DC-Überspannung" } }
+    0x1021: { level: fault, text: { en: "DC bus overvoltage", de: "DC-Bus-Überspannung" } }
+    0x1022: { level: fault, text: { en: "DC bus unbalanced voltage", de: "DC-Bus-Spannungsunsymmetrie" } }
+    0x1023: { level: fault, text: { en: "DC bus undervoltage", de: "DC-Bus-Unterspannung" } }
+    0x1024: { level: fault, text: { en: "DC bus unbalanced voltage 2", de: "DC-Bus-Spannungsunsymmetrie 2" } }
+    0x1025: { level: fault, text: { en: "DC channel A overcurrent", de: "DC-Kanal A Überstrom" } }
+    0x1026: { level: fault, text: { en: "DC channel B overcurrent", de: "DC-Kanal B Überstrom" } }
+    0x1027: { level: fault, text: { en: "DC input interference", de: "DC-Eingangsstörung" } }
+    0x1028: { level: fault, text: { en: "DC reverse connection", de: "DC-Verpolung" } }
+    0x1029: { level: fault, text: { en: "PV midpoint grounding fault", de: "PV-Mittelpunkt-Erdschluss" } }
+    0x1030: { level: fault, text: { en: "Grid interference protection", de: "Netzstörungsschutz" } }
+    0x1031: { level: fault, text: { en: "DSP initial protection", de: "DSP-Initialisierungsschutz" } }
+    0x1032: { level: fault, text: { en: "Over temperature protection", de: "Übertemperaturschutz" } }
+    0x1033: { level: fault, text: { en: "PV insulation fault", de: "PV-Isolationsfehler" } }
+    0x1034: { level: fault, text: { en: "Leakage current protection", de: "Fehlerstromschutz" } }
+    0x1035: { level: fault, text: { en: "Relay check protection", de: "Relaisprüfung fehlgeschlagen" } }
+    0x1036: { level: fault, text: { en: "DSP_B protection", de: "DSP_B-Schutz" } }
+    0x1037: { level: fault, text: { en: "DC injection protection", de: "DC-Einspeiseschutz" } }
+    0x1038: { level: fault, text: { en: "12 V undervoltage fault", de: "12-V-Unterspannung" } }
+    0x1039: { level: fault, text: { en: "Leakage current self-check", de: "Fehlerstrom-Selbsttest" } }
+    0x103A: { level: fault, text: { en: "Under temperature protection", de: "Untertemperaturschutz" } }
+    0x1040: { level: fault, text: { en: "AFCI check fault", de: "AFCI-Prüffehler" } }
+    0x1041: { level: fault, text: { en: "AFCI arc fault", de: "AFCI-Lichtbogenfehler" } }
+    0x1042: { level: fault, text: { en: "DSP SRAM fault", de: "DSP-SRAM-Fehler" } }
+    0x1043: { level: fault, text: { en: "DSP flash fault", de: "DSP-Flash-Fehler" } }
+    0x1044: { level: fault, text: { en: "DSP PC pointer fault", de: "DSP-Programmzählerfehler" } }
+    0x1045: { level: fault, text: { en: "DSP register fault", de: "DSP-Registerfehler" } }
+    0x1046: { level: fault, text: { en: "Grid interference 02 protection", de: "Netzstörungsschutz 02" } }
+    0x1047: { level: fault, text: { en: "Grid current sampling error (AD)", de: "Netzstrom-Messfehler (AD)" } }
+    0x1048: { level: fault, text: { en: "IGBT overcurrent", de: "IGBT-Überstrom" } }
+    0x1050: { level: fault, text: { en: "Grid transient overcurrent", de: "Netz-Transientenüberstrom" } }
+    0x1051: { level: fault, text: { en: "Battery hardware overvoltage", de: "Batterie-Hardware-Überspannung" } }
+    0x1052: { level: fault, text: { en: "LLC hardware overcurrent", de: "LLC-Hardware-Überstrom" } }
+    0x1053: { level: fault, text: { en: "Battery overvoltage", de: "Batterieüberspannung" } }
+    0x1054: { level: fault, text: { en: "Battery undervoltage", de: "Batterieunterspannung" } }
+    0x1055: { level: fault, text: { en: "Battery not connected", de: "Batterie nicht verbunden" } }
+    0x1056: { level: fault, text: { en: "Backup overvoltage", de: "Backup-Überspannung" } }
+    0x1057: { level: fault, text: { en: "Backup overload", de: "Backup-Überlast" } }
+    0x1058: { level: fault, text: { en: "DSP self-check error", de: "DSP-Selbsttestfehler" } }
+    0x2010: { level: fault, text: { en: "Fail safe activated", de: "Fail-Safe aktiv" } }
+    0x2011: { level: fault, text: { en: "Meter communication fail", de: "Zählerkommunikation gestört" } }
+    0x2012: { level: fault, text: { en: "Battery (CAN) communication fail", de: "Batteriekommunikation (CAN) gestört" } }
+    0x2014: { level: fault, text: { en: "DSP communication fail", de: "DSP-Kommunikation gestört" } }
+    0x2015: { level: fault, text: { en: "BMS alarm", de: "BMS-Alarm" } }
+    0x2016: { level: fault, text: { en: "Battery model mismatch", de: "Batteriemodell passt nicht" } }
+    0x2017: { level: fault, text: { en: "BMS alarm 2", de: "BMS-Alarm 2" } }
+    0x2018: { level: fault, text: { en: "DRM connection fail", de: "DRM-Verbindung gestört" } }
+    0x2019: { level: fault, text: { en: "Meter selection fail", de: "Zählerauswahl fehlgeschlagen" } }
+    0x2020: { level: fault, text: { en: "Lead-acid battery high ambient temperature", de: "Bleibatterie: Umgebung zu warm" } }
+    0x2021: { level: fault, text: { en: "Lead-acid battery low ambient temperature", de: "Bleibatterie: Umgebung zu kalt" } }
+    0xF010: { level: fault, text: { en: "Grid surge warning", de: "Netz-Überspannungswarnung" } }
+    0xF011: { level: fault, text: { en: "Fan fault warning", de: "Lüfterwarnung" } }
+  solis_fault_33116:
+    bits:
+      0: { level: fault, text: { en: "No grid", de: "Kein Netz" } }
+      1: { level: fault, text: { en: "Grid overvoltage", de: "Netzüberspannung" } }
+      2: { level: fault, text: { en: "Grid undervoltage", de: "Netzunterspannung" } }
+      3: { level: fault, text: { en: "Grid over-frequency", de: "Netzüberfrequenz" } }
+      4: { level: fault, text: { en: "Grid under-frequency", de: "Netzunterfrequenz" } }
+      5: { level: fault, text: { en: "Unbalanced grid", de: "Netzunsymmetrie" } }
+      6: { level: fault, text: { en: "Grid frequency fluctuation", de: "Netzfrequenzschwankung" } }
+      7: { level: fault, text: { en: "Grid reverse current", de: "Netz-Rückstrom" } }
+      8: { level: fault, text: { en: "Grid current tracking error", de: "Netzstrom-Nachführfehler" } }
+      9: { level: fault, text: { en: "Meter communication fail", de: "Zählerkommunikation gestört" } }
+      10: { level: fault, text: { en: "Fail safe", de: "Fail-Safe" } }
+  solis_fault_33117:
+    bits:
+      0: { level: fault, text: { en: "Backup overvoltage fault", de: "Backup-Überspannung" } }
+      1: { level: fault, text: { en: "Backup overload fault", de: "Backup-Überlast" } }
+  solis_fault_33118:
+    bits:
+      0: { level: fault, text: { en: "Battery not connected", de: "Batterie nicht verbunden" } }
+      1: { level: fault, text: { en: "Battery overvoltage check", de: "Batterie-Überspannungsprüfung" } }
+      2: { level: fault, text: { en: "Battery undervoltage check", de: "Batterie-Unterspannungsprüfung" } }
+  solis_fault_33119:
+    bits:
+      0: { level: fault, text: { en: "DC overvoltage", de: "DC-Überspannung" } }
+      1: { level: fault, text: { en: "DC bus overvoltage", de: "DC-Bus-Überspannung" } }
+      2: { level: fault, text: { en: "DC bus unbalanced voltage", de: "DC-Bus-Spannungsunsymmetrie" } }
+      3: { level: fault, text: { en: "DC bus undervoltage", de: "DC-Bus-Unterspannung" } }
+      4: { level: fault, text: { en: "DC bus unbalanced voltage 2", de: "DC-Bus-Spannungsunsymmetrie 2" } }
+      5: { level: fault, text: { en: "DC overcurrent A circuit", de: "DC-Überstrom Kreis A" } }
+      6: { level: fault, text: { en: "DC overcurrent B circuit", de: "DC-Überstrom Kreis B" } }
+      7: { level: fault, text: { en: "DC input interference", de: "DC-Eingangsstörung" } }
+      8: { level: fault, text: { en: "Grid overcurrent", de: "Netzüberstrom" } }
+      9: { level: fault, text: { en: "IGBT overcurrent", de: "IGBT-Überstrom" } }
+      10: { level: fault, text: { en: "Grid interference 02", de: "Netzstörung 02" } }
+      11: { level: fault, text: { en: "AFCI self-check", de: "AFCI-Selbsttest" } }
+      12: { level: fault, text: { en: "Arc fault (reserved)", de: "Lichtbogenfehler (reserviert)" } }
+      13: { level: fault, text: { en: "Grid current sampling fault", de: "Netzstrom-Messfehler" } }
+      14: { level: fault, text: { en: "DSP self-check error", de: "DSP-Selbsttestfehler" } }
+  solis_fault_33120:
+    bits:
+      0: { level: fault, text: { en: "Grid interference", de: "Netzstörung" } }
+      1: { level: fault, text: { en: "Over DC components", de: "DC-Anteil zu hoch" } }
+      2: { level: fault, text: { en: "Over temperature protection", de: "Übertemperaturschutz" } }
+      3: { level: fault, text: { en: "Relay check protection", de: "Relaisprüfung fehlgeschlagen" } }
+      4: { level: fault, text: { en: "Under temperature protection", de: "Untertemperaturschutz" } }
+      5: { level: fault, text: { en: "PV insulation fault", de: "PV-Isolationsfehler" } }
+      6: { level: fault, text: { en: "12 V undervoltage protection", de: "12-V-Unterspannungsschutz" } }
+      7: { level: fault, text: { en: "Leak current protection", de: "Fehlerstromschutz" } }
+      8: { level: fault, text: { en: "Leak current self-check", de: "Fehlerstrom-Selbsttest" } }
+      9: { level: fault, text: { en: "DSP initial protection", de: "DSP-Initialisierungsschutz" } }
+      10: { level: fault, text: { en: "DSP_B protection", de: "DSP_B-Schutz" } }
+      11: { level: fault, text: { en: "Battery overvoltage hardware fault", de: "Batterie-Hardware-Überspannung" } }
+      12: { level: fault, text: { en: "LLC hardware overcurrent", de: "LLC-Hardware-Überstrom" } }
+      13: { level: fault, text: { en: "Grid transient overcurrent", de: "Netz-Transientenüberstrom" } }
+      14: { level: fault, text: { en: "CAN communication fail", de: "CAN-Kommunikation gestört" } }
+      15: { level: fault, text: { en: "DSP communication fail", de: "DSP-Kommunikation gestört" } }
+  solis_bms_fault_1:
+    bits:
+      0: { level: fault, text: { en: "Battery 1 overvoltage", de: "Batterie 1: Überspannung" } }
+      1: { level: fault, text: { en: "Battery 1 undervoltage", de: "Batterie 1: Unterspannung" } }
+      2: { level: fault, text: { en: "Battery 1 overcurrent charge", de: "Batterie 1: Überstrom Laden" } }
+      3: { level: fault, text: { en: "Battery 1 overcurrent discharge", de: "Batterie 1: Überstrom Entladen" } }
+      4: { level: fault, text: { en: "Battery 1 overtemperature", de: "Batterie 1: Übertemperatur" } }
+      5: { level: fault, text: { en: "Battery 1 undertemperature", de: "Batterie 1: Untertemperatur" } }
+      6: { level: fault, text: { en: "Battery 1 communication fault", de: "Batterie 1: Kommunikationsfehler" } }
+      7: { level: fault, text: { en: "Battery 1 internal fault", de: "Batterie 1: Interner Fehler" } }
+  solis_bms_fault_2:
+    bits:
+      0: { level: fault, text: { en: "Battery 2 overvoltage", de: "Batterie 2: Überspannung" } }
+      1: { level: fault, text: { en: "Battery 2 undervoltage", de: "Batterie 2: Unterspannung" } }
+      2: { level: fault, text: { en: "Battery 2 overcurrent charge", de: "Batterie 2: Überstrom Laden" } }
+      3: { level: fault, text: { en: "Battery 2 overcurrent discharge", de: "Batterie 2: Überstrom Entladen" } }
+      4: { level: fault, text: { en: "Battery 2 overtemperature", de: "Batterie 2: Übertemperatur" } }
+      5: { level: fault, text: { en: "Battery 2 undertemperature", de: "Batterie 2: Untertemperatur" } }
+      6: { level: fault, text: { en: "Battery 2 communication fault", de: "Batterie 2: Kommunikationsfehler" } }
+      7: { level: fault, text: { en: "Battery 2 internal fault", de: "Batterie 2: Interner Fehler" } }
+  solis_operating:
+    bits:
+      0: { level: ok, text: { en: Normal operation, de: Normalbetrieb } }
+      1: { level: ok, text: { en: Initializing, de: Initialisierung } }
+      2: { level: ok, text: { en: Controlled turn-off, de: Geregelt abgeschaltet } }
+      3: { level: fault, text: { en: Fault turn-off, de: Fehlerabschaltung } }
+      4: { level: notice, text: { en: Stand-by, de: Standby } }
+      5: { level: notice, text: { en: Limited operation (temp/freq), de: Eingeschränkt (Temp./Freq.) } }
+      6: { level: notice, text: { en: Limited operation (external), de: Eingeschränkt (extern) } }
+      7: { level: fault, text: { en: Backup overload, de: Backup-Überlast } }
+      8: { level: fault, text: { en: Load fault, de: Lastfehler } }
+      9: { level: fault, text: { en: Grid fault, de: Netzfehler } }
+      10: { level: fault, text: { en: Battery fault, de: Batteriefehler } }
+      12: { level: fault, text: { en: Grid surge warning, de: Netz-Überspannungswarnung } }   # bit 11 reserved (table.go)
+      13: { level: fault, text: { en: Fan fault warning, de: Lüfterwarnung } }

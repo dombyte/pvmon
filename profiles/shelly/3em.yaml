@@ -1,0 +1,52 @@
+# Draft profile, schema: SPEC.md section 4.2.
+schema: 1
+profile: shelly/3em
+version: 2
+vendor: Shelly
+models: ["SHEM-3", "Shelly 3EM"]
+transport: http
+verified: false           # field list from community sources; no dump yet
+http:
+  auth: basic             # only when restricted login is enabled
+  endpoints:
+    - { id: status, url: "/status" }
+max_power: 70000
+netting: meter            # placeholder, see docs
+
+blocks:
+  total:
+    role: grid
+    roles_allowed: [grid, consumer]
+    channels:
+      power:      { endpoint: status, path: "$.total_power", type: number, unit: W }
+      energy_in:  { endpoint: status, sum: ["$.emeters[0].total", "$.emeters[1].total", "$.emeters[2].total"], type: number, unit: Wh, counter: lifetime }
+      energy_out: { endpoint: status, sum: ["$.emeters[0].total_returned", "$.emeters[1].total_returned", "$.emeters[2].total_returned"], type: number, unit: Wh, counter: lifetime }
+  l1:
+    role: phase
+    channels:
+      power:      { endpoint: status, path: "$.emeters[0].power",   type: number, unit: W, history: false }
+      voltage:    { endpoint: status, path: "$.emeters[0].voltage", type: number, unit: V, history: false }
+      current:    { endpoint: status, path: "$.emeters[0].current", type: number, unit: A, history: false }
+      pf:         { endpoint: status, path: "$.emeters[0].pf",      type: number, unit: "", history: false }
+  l2:
+    role: phase
+    channels:
+      power:      { endpoint: status, path: "$.emeters[1].power",   type: number, unit: W, history: false }
+      voltage:    { endpoint: status, path: "$.emeters[1].voltage", type: number, unit: V, history: false }
+      current:    { endpoint: status, path: "$.emeters[1].current", type: number, unit: A, history: false }
+      pf:         { endpoint: status, path: "$.emeters[1].pf",      type: number, unit: "", history: false }
+  l3:
+    role: phase
+    channels:
+      power:      { endpoint: status, path: "$.emeters[2].power",   type: number, unit: W, history: false }
+      voltage:    { endpoint: status, path: "$.emeters[2].voltage", type: number, unit: V, history: false }
+      current:    { endpoint: status, path: "$.emeters[2].current", type: number, unit: A, history: false }
+      pf:         { endpoint: status, path: "$.emeters[2].pf",      type: number, unit: "", history: false }
+
+status:
+  l1_valid: { endpoint: status, path: "$.emeters[0].is_valid", type: bool, false: fault, text: { en: Phase 1 measurement invalid, de: Messung Phase 1 ungültig },
+    label: { en: Phase 1 measurement, de: Messung Phase 1 } }
+  l2_valid: { endpoint: status, path: "$.emeters[1].is_valid", type: bool, false: fault, text: { en: Phase 2 measurement invalid, de: Messung Phase 2 ungültig },
+    label: { en: Phase 2 measurement, de: Messung Phase 2 } }
+  l3_valid: { endpoint: status, path: "$.emeters[2].is_valid", type: bool, false: fault, text: { en: Phase 3 measurement invalid, de: Messung Phase 3 ungültig },
+    label: { en: Phase 3 measurement, de: Messung Phase 3 } }

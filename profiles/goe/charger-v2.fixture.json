@@ -1,0 +1,27 @@
+{
+  "profile": "goe/charger-v2",
+  "version": 1,
+  "source": "documentation",
+  "samples": [
+    {
+      "at": "2026-11-19T12:00:00Z",
+      "json": {
+        "status": {
+          "nrg": [231, 229, 230, 1, 16, 16, 16, 3696, 3664, 3680, 0, 11040, 0, 0, 0, 0],
+          "eto": 8765432, "wh": 7200, "car": 2, "err": 0, "modelStatus": 15,
+          "fwv": "056.1", "typ": "go-eCharger Gemini flex"
+        }
+      }
+    },
+    {
+      "at": "2026-11-19T17:30:00Z",
+      "json": {
+        "status": {
+          "nrg": [232, 230, 231, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          "eto": 8779732, "wh": 14300, "car": 4, "err": 0, "modelStatus": 4,
+          "fwv": "056.1", "typ": "go-eCharger Gemini flex"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+# Draft profile, schema: SPEC.md section 4.2.
+schema: 1
+profile: eastron/sdm630
+version: 1
+vendor: Eastron
+models: ["SDM630", "SDM630MCT", "SDM630-Modbus V2"]
+transport: modbus
+verified: false           # built from Eastron SDM630 Modbus protocol V1.5, no dump yet
+modbus: { function: input, byte_order: big, word_order: big }
+read:
+  mode: range
+  max_registers: 80       # protocol: at most 40 float parameters per request
+  ranges: [[0x0000, 0x004F], [0x015A, 0x0165]]
+max_power: 70000          # W (3 x 100 A x 230 V, rounded up)
+netting: app              # counts per phase (forum reports, Solis article); check per unit
+
+blocks:
+  total:
+    role: grid
+    roles_allowed: [grid, consumer]
+    channels:
+      power:      { addr: 0x0034, type: f32, unit: W }                    # + = import (unverified)
+      energy_in:  { addr: 0x0048, type: f32, unit: kWh, counter: lifetime }
+      energy_out: { addr: 0x004A, type: f32, unit: kWh, counter: lifetime }
+      frequency:  { addr: 0x0046, type: f32, unit: Hz, history: false }
+  l1:
+    role: phase
+    channels:
+      voltage:    { addr: 0x0000, type: f32, unit: V, history: false }
+      current:    { addr: 0x0006, type: f32, unit: A, history: false }
+      power:      { addr: 0x000C, type: f32, unit: W, history: false }
+      pf:         { addr: 0x001E, type: f32, unit: "", history: false }
+      energy_in:  { addr: 0x015A, type: f32, unit: kWh, counter: lifetime, history: false }
+      energy_out: { addr: 0x0160, type: f32, unit: kWh, counter: lifetime, history: false }
+  l2:
+    role: phase
+    channels:
+      voltage:    { addr: 0x0002, type: f32, unit: V, history: false }
+      current:    { addr: 0x0008, type: f32, unit: A, history: false }
+      power:      { addr: 0x000E, type: f32, unit: W, history: false }
+      pf:         { addr: 0x0020, type: f32, unit: "", history: false }
+      energy_in:  { addr: 0x015C, type: f32, unit: kWh, counter: lifetime, history: false }
+      energy_out: { addr: 0x0162, type: f32, unit: kWh, counter: lifetime, history: false }
+  l3:
+    role: phase
+    channels:
+      voltage:    { addr: 0x0004, type: f32, unit: V, history: false }
+      current:    { addr: 0x000A, type: f32, unit: A, history: false }
+      power:      { addr: 0x0010, type: f32, unit: W, history: false }
+      pf:         { addr: 0x0022, type: f32, unit: "", history: false }
+      energy_in:  { addr: 0x015E, type: f32, unit: kWh, counter: lifetime, history: false }
+      energy_out: { addr: 0x0164, type: f32, unit: kWh, counter: lifetime, history: false }

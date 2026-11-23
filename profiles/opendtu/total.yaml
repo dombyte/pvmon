@@ -1,0 +1,26 @@
+# Draft profile, schema: SPEC.md section 4.2.
+schema: 1
+profile: opendtu/total
+version: 1
+vendor: OpenDTU
+models: ["OpenDTU (Hoymiles micro inverters)"]
+transport: http
+verified: false           # field list from the OpenDTU source and the evcc template; no dump yet
+http:
+  auth: basic             # only when the read-only API is protected (user admin)
+  endpoints:
+    - { id: live, url: "/api/livedata/status" }
+max_power: 10000          # W, sum of all micro inverters behind one DTU
+
+blocks:
+  pv:
+    role: pv
+    channels:
+      power:      { endpoint: live, path: "$.total.Power.v", type: number, unit: W }
+      energy_out: { endpoint: live, path: "$.total.YieldTotal.v", type: number, unit: kWh, counter: lifetime }
+  # Power only, for DTUs whose lifetime total is unusable: it drops while an inverter is
+  # unreachable at night (partial sums). pvmon integrates the energy from the power (≈).
+  pv_power:
+    role: pv
+    channels:
+      power:      { endpoint: live, path: "$.total.Power.v", type: number, unit: W }

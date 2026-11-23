@@ -1,0 +1,40 @@
+{
+  "samples": [
+    {
+      "channels": {
+        "pv.power": 5200, "pv.energy_out": 18400,
+        "pv1.voltage": 310.5, "pv1.current": 8.4, "pv1.power": 2608.2,
+        "pv2.voltage": 321.0, "pv2.current": 8.1, "pv2.power": 2600.1,
+        "pv3.voltage": 0, "pv3.current": 0, "pv3.power": 0,
+        "pv4.voltage": 0, "pv4.current": 0, "pv4.power": 0,
+        "battery.power": -1800, "battery.soc": 64, "battery.energy_in": 9600,
+        "battery.energy_out": 4100, "battery.voltage": 352.0,
+        "grid.power": -1500, "grid.energy_in": 12339690, "grid.energy_out": 2066080,
+        "backup.power": 0, "backup.energy_in": 0
+      },
+      "status": {
+        "operating": "ok", "grid_fault": "ok", "backup_fault": "ok", "battery_fault": "ok",
+        "device_fault_4": "ok", "device_fault_5": "ok", "operating_bits": "ok",
+        "bms_fault_1": "ok", "bms_fault_2": "ok"
+      }
+    },
+    {
+      "channels": {
+        "pv.power": 0, "pv.energy_out": 21300,
+        "pv1.voltage": 12.0, "pv1.current": 0, "pv1.power": 0,
+        "pv2.voltage": 10.0, "pv2.current": 0, "pv2.power": 0,
+        "pv3.voltage": 0, "pv3.current": 0, "pv3.power": 0,
+        "pv4.voltage": 0, "pv4.current": 0, "pv4.power": 0,
+        "battery.power": 2400, "battery.soc": 48, "battery.energy_in": 9800,
+        "battery.energy_out": 6200, "battery.voltage": 338.0,
+        "grid.power": 600, "grid.energy_in": 12340490, "grid.energy_out": 2066080,
+        "backup.power": 0, "backup.energy_in": 0
+      },
+      "status": {
+        "operating": "notice", "grid_fault": "ok", "backup_fault": "ok", "battery_fault": "ok",
+        "device_fault_4": "ok", "device_fault_5": "ok", "operating_bits": "notice",
+        "bms_fault_1": "ok", "bms_fault_2": "ok"
+      }
+    }
+  ]
+}

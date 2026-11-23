@@ -1,0 +1,106 @@
+{
+  "name": "Home",
+  "tz": "Europe/Berlin",
+  "config_rev": 0,
+  "data_since": "2026-11-18",
+  "capabilities": {
+    "pv": 2,
+    "battery": 2,
+    "grid": true,
+    "backup": false,
+    "loadpoints": {
+      "heater": 0,
+      "heatpump": 0,
+      "other": 0,
+      "wallbox": 0
+    }
+  },
+  "meters": [
+    {
+      "id": "bat1",
+      "role": "battery",
+      "label": "bat1",
+      "device": "wr1",
+      "capacity_wh": 10000,
+      "series": [
+        "bat1/energy_in",
+        "bat1/energy_out",
+        "bat1/power",
+        "bat1/soc",
+        "bat1/voltage"
+      ]
+    },
+    {
+      "id": "bat2",
+      "role": "battery",
+      "label": "bat2",
+      "device": "wr2",
+      "capacity_wh": 5000,
+      "series": [
+        "bat2/energy_in",
+        "bat2/energy_out",
+        "bat2/power",
+        "bat2/soc",
+        "bat2/voltage"
+      ]
+    },
+    {
+      "id": "grid",
+      "role": "grid",
+      "label": "grid",
+      "device": "wr1",
+      "series": [
+        "grid/energy_in",
+        "grid/energy_out",
+        "grid/power"
+      ]
+    },
+    {
+      "id": "pv-east",
+      "role": "pv",
+      "label": "East",
+      "device": "wr1",
+      "parent": "site",
+      "series": [
+        "pv-east/energy_out",
+        "pv-east/power"
+      ]
+    },
+    {
+      "id": "pv-west",
+      "role": "pv",
+      "label": "West",
+      "device": "wr2",
+      "parent": "site",
+      "series": [
+        "pv-west/energy_out",
+        "pv-west/power"
+      ]
+    }
+  ],
+  "devices": [
+    {
+      "id": "wr1",
+      "profile": "solis/s6-hybrid",
+      "verified": true,
+      "state": "unconfigured"
+    },
+    {
+      "id": "wr2",
+      "profile": "solis/s6-hybrid",
+      "verified": true,
+      "state": "unconfigured"
+    }
+  ],
+  "site_series": [
+    "site/pv",
+    "site/grid_in",
+    "site/grid_out",
+    "site/battery_in",
+    "site/battery_out",
+    "site/soc",
+    "site/consumption",
+    "site/house_rest"
+  ]
+}
+
