@@ -25,7 +25,7 @@ require (
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/v2 v2.4.1
 	github.com/rs/zerolog v1.35.1
-	github.com/signintech/gopdf v0.38.4
+	github.com/signintech/gopdf v0.38.6
 	github.com/stretchr/testify v1.12.1
 	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/crypto v0.59.0
