@@ -184,10 +184,12 @@ func decodeAll(p *profile.Profile, n profile.Needs, raw profile.Raw) decoded {
 	return out
 }
 
+// flagsOf maps a counter delta to bucket flags. A counter covers its gap exactly, so a gap
+// delta is only estimated (its spread over time), never missing (spec 5.3).
 func flagsOf(d Delta) int {
 	f := 0
 	if d.Gap {
-		f |= storage.FlagEstimated | storage.FlagGap
+		f |= storage.FlagEstimated
 	}
 	if d.ResetSeen {
 		f |= storage.FlagResetSeen

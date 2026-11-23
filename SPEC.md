@@ -391,7 +391,7 @@ Pvmon writes the state in the same transaction as the bucket upsert. The raw bas
 - At least one poll of that device failed since its last successful poll.
 - The app was not running in between.
 
-A slow cycle on a busy bus is not a gap. For `lifetime` and `daily_reset`, the counter delta covers the gap. Pvmon spreads it evenly over the buckets of the gap and flags it `estimated|gap`. The affected days are incomplete. For `none`, the gap stays a gap.
+A slow cycle on a busy bus is not a gap. For `lifetime` and `daily_reset`, the counter delta covers the gap. Pvmon spreads it evenly over the buckets of the gap and flags it `estimated`. The total is exact, so the affected days stay complete and show ≈. For `none`, the gap stays a gap: pvmon flags the slots from the last successful poll to the current poll `gap`, so the affected days are incomplete.
 
 ### 5.4 Completeness and estimates
 

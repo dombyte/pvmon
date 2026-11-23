@@ -91,6 +91,7 @@ func TestNettingAcrossOutageBooksCounterNet(t *testing.T) {
 	assert.InDelta(t, 1600, e.total(t, "grid", "energy_in", from, to).Wh, 110, "80 min at 1.2 kW")
 	gap := e.total(t, "grid", "energy_in", outFrom, outTo)
 	assert.InDelta(t, 600, gap.Wh, 110, "the outage's net comes from the counters")
-	assert.NotZero(t, gap.Flags&storage.FlagGap, "outage buckets are flagged")
+	assert.Equal(t, storage.FlagEstimated, gap.Flags&(storage.FlagEstimated|storage.FlagGap),
+		"outage buckets are estimated, not a gap")
 	assert.InDelta(t, 0, e.total(t, "grid", "energy_out", from, to).Wh, 0)
 }

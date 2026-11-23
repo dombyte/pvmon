@@ -517,6 +517,7 @@ Gaps between this document and the repository:
 - **CLI.** These commands exist: `serve`, `version`, `profile validate`, `dump`, `simulate`, `import-solis`, `user`, `token` and `config validate|export`. These commands from SPEC.md section 13 are not built: `profile plan|probe`, `backfill`, `restore`, `data exclude|swap|reassign` and `vacuum`. `vacuum` comes with the retention. The retention itself never runs `VACUUM` (SPEC.md section 7.4).
 - **Audit.** `import-solis` writes no audit entry yet (SPEC.md section 10). The audit log is not purged yet (retention, SPEC.md section 7.4).
 - **Old databases.** Databases written before the `daily_reset` gap fix (pvmon stopped over midnight) keep 0 Wh slots in the night that look measured. They also keep the energy of the night after the restart. Only `data exclude` (not built) can correct them.
+- **Old gap flags.** Databases written before counter gaps became `estimated` keep `gap` on those buckets. Their days stay incomplete until a `backfill` (not built) rewrites them.
 - **Reports.** The data-quality section does not list device changes in the period, because no device history is stored.
 - **Netting `app`.** The daily drift check of coarse counters against the device totals (section 6) is not implemented. Device health `stale` (SPEC.md section 8.2) is not detected yet.
 - **docs/.** Swagger UI and OpenAPI do not exist yet. The dev `Dockerfile` gets its docs stage back with them.

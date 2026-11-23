@@ -296,6 +296,13 @@ func TestIntegratesBatteryBothWaysWithMissingPower(t *testing.T) {
 	from, to := moreStart.Add(-time.Hour), moreStart.Add(2*time.Hour)
 	assert.InDelta(t, 500, e.total(t, "main", "energy_out", from, to).Wh, 15)
 	assert.InDelta(t, 333, e.total(t, "main", "energy_in", from, to).Wh, 15)
+	gap := func(a, b time.Duration) int {
+		return e.total(t, "main", "energy_out", moreStart.Add(a), moreStart.Add(b)).Flags &
+			storage.FlagGap
+	}
+	assert.Zero(t, gap(0, 15*time.Minute), "the first poll of a run has no span to flag")
+	assert.NotZero(t, gap(30*time.Minute, 45*time.Minute), "the span without power is missing")
+	assert.Zero(t, gap(45*time.Minute, time.Hour), "integration resumes complete")
 }
 
 func nettingProfile(res int) string { return profHead + fmt.Sprintf(nettingBlocks, res, res) }

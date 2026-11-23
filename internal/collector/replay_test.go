@@ -305,7 +305,7 @@ func TestReplayOutageAndDST(t *testing.T) {
 	tot, err := r.store.Read().SumEnergy(context.Background(), id, collector.Slot(day),
 		collector.Slot(day.AddDate(0, 0, 1)))
 	require.NoError(t, err)
-	assert.Equal(t, storage.FlagGap|storage.FlagEstimated, tot.Flags, "outage flagged")
+	assert.Equal(t, storage.FlagEstimated, tot.Flags, "the counter covers the outage: estimated, not a gap")
 	assert.Equal(t, int64(92), collector.Slot(day.AddDate(0, 0, 1))-collector.Slot(day))
 }
 
@@ -411,7 +411,8 @@ func TestReplayRestartsOverMidnight(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, night, 30, "every slot since midnight is booked")
 	for _, b := range night {
-		assert.NotZero(t, b.Flags&storage.FlagGap, "slot %d is a gap estimate", b.Slot)
+		assert.Equal(t, storage.FlagEstimated, b.Flags&(storage.FlagEstimated|storage.FlagGap),
+			"slot %d is an estimate, not a gap", b.Slot)
 		assert.Positive(t, b.Wh, "slot %d carries part of the night", b.Slot)
 	}
 	assert.InDelta(t, float64(reg(r.src.model.house))*100, r.dayWh(t, "backup", "energy_in", day),

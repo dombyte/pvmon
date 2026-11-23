@@ -113,10 +113,12 @@ func (r *deviceRun) bookIntegrations(b *booking) {
 		v, ok := b.vals.get(ip.power)
 		if !ok {
 			r.integ[ip.power].Reset()
+			r.markLost(b, ip)
 			continue
 		}
 		wh, ok := r.integ[ip.power].Update(v.Num, b.at, b.gap)
 		if !ok {
+			r.markLost(b, ip)
 			continue
 		}
 		key, other := ip.pos, ip.neg
@@ -132,6 +134,20 @@ func (r *deviceRun) bookIntegrations(b *booking) {
 					Wh: k.wh, From: r.lastOK, To: b.at, Flags: storage.FlagEstimated,
 				})
 			}
+		}
+	}
+}
+
+// markLost flags the span since the last successful poll as a gap: a power-only meter
+// cannot tell its energy there, so those slots are missing, never complete (spec 5.3).
+// Before the first poll of a run there is no span to flag.
+func (r *deviceRun) markLost(b *booking, ip integratePlan) {
+	if r.lastOK.IsZero() {
+		return
+	}
+	for _, s := range []*storage.SeriesKey{ip.pos, ip.neg} {
+		if s != nil {
+			b.acc.AddEnergy(r.ids[*s], Energy{From: r.lastOK, To: b.at, Flags: storage.FlagGap})
 		}
 	}
 }
