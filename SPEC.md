@@ -822,7 +822,7 @@ Times are RFC 3339. Day-based parameters also accept local dates (`YYYY-MM-DD`, 
 }
 ```
 
-**Energy value shape:** `{ "period": "2026-11-18", "wh": 6213.4, "complete": true, "estimated": false, "missing_days": 0 }`.
+**Energy value shape:** `{ "period": "2026-11-18", "wh": 6213.4, "complete": true, "estimated": false, "missing_days": 0, "missing": [] }`. `missing` lists the incomplete local days of the period (bucket level: the slot itself). `missing_days` is its length.
 
 - JSON rounds to 2 decimals. Storage keeps 1/1000 of the unit (section 7.2).
 - A ratio series (unit `%`) has its number in `pct` instead of `wh`.

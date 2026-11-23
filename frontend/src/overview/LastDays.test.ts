@@ -13,6 +13,8 @@ const point = (date: string, pv: number | null, running = false): DayPoint => ({
   gridIn: 6100,
   gridOut: 300,
   selfSufficiency: pv === null ? null : 52,
+  incomplete: false,
+  estimated: false,
 })
 
 function render(points: DayPoint[]) {
@@ -54,5 +56,11 @@ describe('LastDays', () => {
     expect(buttons[1]?.attributes('aria-expanded')).toBe('false')
     expect(w.find('a').exists()).toBe(false)
     expect(w.text()).toContain('Einspeisung 0,3')
+  })
+
+  it('names incomplete and estimated days without a tap', () => {
+    const w = render([{ ...point('2026-11-18', 5000), incomplete: true, estimated: true }])
+    expect(w.find('li').text()).toContain('unvollständig')
+    expect(w.find('li').text()).toContain('≈ geschätzt')
   })
 })

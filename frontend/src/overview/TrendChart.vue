@@ -32,6 +32,8 @@ const text = computed<TrendText>(() => ({
   selfSufficiency: t('energy.selfSufficiency'),
   noData: t('trend.noData'),
   running: t('trend.running'),
+  incomplete: t('trend.incomplete'),
+  estimated: t('energy.estimated'),
   pickHint: t('trend.pickHint'),
 }))
 
@@ -97,6 +99,8 @@ const day = (d: string) => formatLocalDate(d, lang.value, { weekday: 'short', da
         <div class="flex items-center justify-between gap-2">
           <p class="text-sm font-semibold">
             {{ day(picked.date) }}<template v-if="picked.running"> · {{ t('trend.running') }}</template>
+            <span v-if="picked.incomplete" class="font-normal text-ink-2"> · {{ t('trend.incomplete') }}</span>
+            <span v-if="picked.estimated" class="font-normal text-ink-2"> · ≈ {{ t('energy.estimated') }}</span>
           </p>
           <button
             type="button"
@@ -152,7 +156,9 @@ const day = (d: string) => formatLocalDate(d, lang.value, { weekday: 'short', da
         </thead>
         <tbody>
           <tr v-for="p in points" :key="p.date">
-            <th scope="row">{{ day(p.date) }}</th>
+            <th scope="row">
+              {{ day(p.date) }}<template v-if="p.incomplete">, {{ t('trend.incomplete') }}</template>
+            </th>
             <td v-for="k in keys" :key="k">{{ energy(p[k]) }}</td>
             <td>
               {{ p.selfSufficiency === null ? missing : formatPercent(p.selfSufficiency, lang) }}

@@ -9,6 +9,7 @@ const value = (period: string, wh: number | null) => ({
   complete: wh !== null,
   estimated: false,
   missing_days: wh === null ? 1 : 0,
+  missing: wh === null ? [period] : [],
 })
 
 const series = (name: string, values: ReturnType<typeof value>[]): EnergySeries => ({
@@ -67,5 +68,18 @@ describe('trend', () => {
 
   it('handles r3 as well', () => {
     expect(trendSeries(r3)).toContain('site/self_sufficiency')
+  })
+
+  it('marks days with missing or estimated data that still have a number', () => {
+    const v = (period: string, wh: number | null, missing: string[], estimated = false) => ({
+      period, wh, complete: !missing.length, estimated, missing_days: missing.length, missing,
+    })
+    const s = {
+      'site/pv': series('site/pv', [v('2026-11-18', 900, ['2026-11-18']), v('2026-11-19', 500, [], true)]),
+      'site/consumption': series('site/consumption', [v('2026-11-17', null, ['2026-11-17'])]),
+    }
+    const pts = dayPoints(s, '2026-11-17', '2026-11-19')
+    expect(pts.map((p) => p.incomplete)).toEqual([false, true, false])
+    expect(pts.map((p) => p.estimated)).toEqual([false, false, true])
   })
 })

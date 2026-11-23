@@ -65,6 +65,7 @@ function value(name: string, period: string, n: number, factor = 1): EnergyValue
     complete: !missing && period !== today,
     estimated: false,
     missing_days: missing ? 1 : 0,
+    missing: missing ? [period] : [],
   }
 }
 
@@ -144,6 +145,7 @@ function energy(url: URL): { series: EnergySeries[] } {
           complete: past,
           estimated: false,
           missing_days: 0,
+          missing: [],
         })),
       }
     }

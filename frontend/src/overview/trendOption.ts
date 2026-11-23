@@ -13,6 +13,9 @@ export interface TrendText {
   selfSufficiency: string
   noData: string
   running: string
+  /** Notes of a day with missing or estimated data. */
+  incomplete: string
+  estimated: string
   /** Footer hint: a click pins the day below the chart. */
   pickHint: string
 }
@@ -35,8 +38,10 @@ export function tooltipHTML(p: DayPoint, keys: TrendKey[], t: Tokens, x: TrendTe
     tooltipRow(x.names[k], value(p[k], (n) => formatEnergy(n, x.lang)), t[tokenOf[k]]),
   )
   rows.push(tooltipRow(x.selfSufficiency, value(p.selfSufficiency, (n) => formatPercent(n, x.lang))))
+  const notes = [p.incomplete && `* ${x.incomplete}`, p.estimated && `≈ ${x.estimated}`].filter(Boolean)
   // The tooltip follows the pointer, so it holds no link; a click pins the day instead.
-  return tooltipBody(head, rows, `<span style="opacity:.7">${escapeHTML(x.pickHint)}</span>`)
+  const foot = [...notes, x.pickHint].map((n) => `<div style="opacity:.7">${escapeHTML(String(n))}</div>`)
+  return tooltipBody(head, rows, foot.join(''))
 }
 
 /**
@@ -56,7 +61,8 @@ export function trendOption(
     grid: { left: gridPad, right: gridPad, top: gridPad, bottom: gridPad, outerBoundsMode: 'same' },
     xAxis: {
       type: 'category',
-      data: points.map((p) => formatLocalDate(p.date, x.lang, { day: 'numeric' })),
+      // An incomplete day carries the same "*" as the energy table.
+      data: points.map((p) => formatLocalDate(p.date, x.lang, { day: 'numeric' }) + (p.incomplete ? '*' : '')),
     },
     yAxis: { type: 'value', min: 0, axisLabel: { formatter: (v: number) => formatNumber(v, x.lang, 1, 0) } },
     tooltip: {

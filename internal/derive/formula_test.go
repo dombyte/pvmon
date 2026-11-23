@@ -126,7 +126,7 @@ func TestFormulaEvaluate(t *testing.T) {
 			}
 			assert.Equal(t, tc.complete, got.Complete)
 			assert.Equal(t, tc.estimated, got.Estimated)
-			assert.Equal(t, tc.missing, got.MissingDays)
+			assert.Len(t, got.Missing, tc.missing)
 		})
 	}
 }

@@ -2,7 +2,7 @@
 // list (phone, 7 days), spec 11.4. Pure: driven by the energy answer only.
 import type { EnergySeries, EnergyValue, SiteModel } from '@/api/types'
 import { addDays, type LocalDate } from '@/format/localdate'
-import { numberOf } from '@/energy/rows'
+import { missingDays, numberOf } from '@/energy/rows'
 
 /** Days of the desktop chart; the phone list shows the newest `listDays` of them. */
 export const trendDays = 14
@@ -19,12 +19,15 @@ export interface DayPoint {
   gridOut: number | null
   /** Self-sufficiency in percent. */
   selfSufficiency: number | null
+  /** Some series has missing data on this day. */
+  incomplete: boolean
+  estimated: boolean
 }
 
 /** The bar series of the trend; "pv" only on sites with PV. */
 export type TrendKey = 'pv' | 'consumption'
 
-const seriesOf: Record<keyof Omit<DayPoint, 'date' | 'running'>, string> = {
+const seriesOf: Record<keyof Omit<DayPoint, 'date' | 'running' | 'incomplete' | 'estimated'>, string> = {
   pv: 'site/pv',
   consumption: 'site/consumption',
   gridIn: 'site/grid_in',
@@ -65,6 +68,7 @@ export function dayPoints(
   const out: DayPoint[] = []
   for (let d = from; d <= today; d = addDays(d, 1)) {
     const at = (k: keyof typeof seriesOf) => numberOf(maps[k].get(d))
+    const all = Object.values(maps).map((m) => m.get(d))
     out.push({
       date: d,
       running: d === today,
@@ -73,6 +77,8 @@ export function dayPoints(
       gridIn: at('gridIn'),
       gridOut: at('gridOut'),
       selfSufficiency: at('selfSufficiency'),
+      incomplete: missingDays(all).length > 0,
+      estimated: all.some((v) => v?.estimated === true && numberOf(v) !== null),
     })
   }
   return out

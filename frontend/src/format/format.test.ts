@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatDayList,
   formatDuration,
   formatDateTime,
   formatEnergy,
@@ -74,5 +75,19 @@ describe('formatDuration', () => {
     expect(formatDuration(45 * 60_000, 'de')).toBe('45 min')
     expect(formatDuration(3 * 3_600_000 + 12 * 60_000, 'en')).toBe('3 h 12 min')
     expect(formatDuration(24 * 3_600_000, 'de')).toBe('24 h')
+  })
+})
+
+describe('formatDayList', () => {
+  it('lists dates of one year without the year', () => {
+    expect(formatDayList(['2026-11-17', '2026-11-18'], 'en')).toBe('17 Nov, 18 Nov')
+    expect(formatDayList([], 'en')).toBe('')
+  })
+  it('shows the newest days and counts the rest', () => {
+    const days = ['2026-11-14', '2026-11-15', '2026-11-16', '2026-11-17']
+    expect(formatDayList(days, 'en', 2)).toBe('16 Nov, 17 Nov (+2)')
+  })
+  it('shows the year when the dates span years', () => {
+    expect(formatDayList(['2025-12-31', '2026-01-01'], 'de')).toBe('31.12.2025, 01.01.2026')
   })
 })

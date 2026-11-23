@@ -63,6 +63,8 @@ export interface EnergyValue {
   complete: boolean
   estimated: boolean
   missing_days: number
+  /** Incomplete local days of the period, sorted. */
+  missing: string[]
 }
 
 export interface EnergySeries {

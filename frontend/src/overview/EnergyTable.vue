@@ -3,7 +3,8 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Card from '@/components/Card.vue'
 import EnergyCell from '@/energy/EnergyCell.vue'
-import type { EnergyRow } from '@/energy/rows'
+import { missingDays, type EnergyRow } from '@/energy/rows'
+import { formatDayList, type Lang } from '@/format'
 import { columns, type Column } from '@/energy/useOverviewEnergy'
 import type { EnergyValue } from '@/api/types'
 
@@ -12,7 +13,7 @@ const props = defineProps<{
   phone: boolean
   value: (name: string, c: Column) => EnergyValue | undefined
 }>()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const tab = ref<Column>('today')
 const shown = computed(() => (props.phone ? [tab.value] : columns))
 const heads = computed<Record<Column, string>>(() => ({
@@ -21,6 +22,10 @@ const heads = computed<Record<Column, string>>(() => ({
   year: t('energy.colYear'),
   total: t('energy.colTotal'),
 }))
+// Spelled out below the table: the cell tooltip is out of reach on touch screens.
+const missing = computed(() =>
+  missingDays(props.rows.flatMap((r) => shown.value.map((c) => props.value(r.name, c)))),
+)
 const color = (r: EnergyRow) => (r.color === 'neutral' ? 'var(--ink-2)' : `var(--${r.color})`)
 // Loadpoints are named by category only; how many there are is the flow's business.
 const label = (r: EnergyRow) => t(r.labelKey)
@@ -66,5 +71,8 @@ const label = (r: EnergyRow) => t(r.labelKey)
       </tbody>
     </table>
     <p class="mt-2 text-xs text-ink-2">{{ t('energy.footnote') }}</p>
+    <p v-if="missing.length" class="mt-1 text-xs text-ink-2">
+      * {{ t('energy.incomplete', { days: formatDayList(missing, locale as Lang) }) }}
+    </p>
   </Card>
 </template>

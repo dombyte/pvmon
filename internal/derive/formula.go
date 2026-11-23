@@ -123,10 +123,10 @@ func concat(parts ...[]Term) []Term {
 
 // Value is the result of a formula over one period.
 type Value struct {
-	Value       *float64 // Wh or percent; nil when there is no data
-	Complete    bool
-	Estimated   bool
-	MissingDays int
+	Value     *float64 // Wh or percent; nil when there is no data
+	Complete  bool
+	Estimated bool
+	Missing   []string // incomplete local days, sorted
 }
 
 // Evaluate applies f to the aggregates of its series (absent = no data).
@@ -147,7 +147,7 @@ func (f Formula) Evaluate(aggs map[string]Agg) Value {
 	}
 	out := Value{
 		Complete: ok && len(quality.Missing) == 0, Estimated: quality.Estimated,
-		MissingDays: len(quality.Missing),
+		Missing: quality.Missing,
 	}
 	if ok {
 		out.Value = &v

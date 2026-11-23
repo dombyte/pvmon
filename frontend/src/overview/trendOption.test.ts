@@ -22,6 +22,8 @@ const text: TrendText = {
   noData: 'keine Daten',
   running: 'läuft',
   pickHint: 'Klicken für Details',
+  incomplete: 'unvollständig',
+  estimated: 'geschätzt',
 }
 
 const point = (date: string, pv: number | null, running = false): DayPoint => ({
@@ -32,6 +34,8 @@ const point = (date: string, pv: number | null, running = false): DayPoint => ({
   gridIn: 6100,
   gridOut: 300,
   selfSufficiency: pv === null ? null : 52,
+  incomplete: false,
+  estimated: false,
 })
 
 interface Bar {
@@ -72,5 +76,15 @@ describe('trendOption', () => {
     expect(running).not.toContain('<a')
     expect(running).toContain('läuft')
     expect(running).toContain('keine Daten')
+  })
+
+  it('marks incomplete and estimated days on the axis and in the tooltip', () => {
+    const p = { ...point('2026-11-18', 6200), incomplete: true, estimated: true }
+    const opt = trendOption([p], ['pv'], tokens, text, { animate: false, selected: null })
+    expect((opt.xAxis as { data: string[] }).data).toEqual(['18*'])
+    const html = tooltipHTML(p, ['pv'], tokens, text)
+    expect(html).toContain('* unvollständig')
+    expect(html).toContain('≈ geschätzt')
+    expect(tooltipHTML(point('2026-11-18', 6200), ['pv'], tokens, text)).not.toContain('unvollständig')
   })
 })

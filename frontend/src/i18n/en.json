@@ -124,8 +124,9 @@
     "colYear": "Year",
     "colTotal": "Total",
     "colSeries": "Series",
-    "incomplete": "Incomplete: data missing on {n} days",
+    "incomplete": "Data missing: {days}",
     "estimated": "estimated",
+    "estimatedNote": "≈ Contains estimated values",
     "footnote": "kWh · * incomplete, ≈ estimated"
   },
   "trend": {
@@ -135,6 +136,7 @@
     "hint": "Hover shows the day, click or tap selects it.",
     "noData": "no data",
     "running": "running",
+    "incomplete": "incomplete",
     "openReport": "Open day report",
     "summary": "Last {n} days: {values}",
     "colDay": "Day",
@@ -159,7 +161,6 @@
       "month": "Last {n} months",
       "year": "Last {n} years"
     },
-    "incomplete": "Incomplete: some days have no data",
     "openReport": "Open report for this period",
     "hint": "Click a bar for details",
     "hintTouch": "Swipe sideways for the whole range · tap a bar for details",

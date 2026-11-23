@@ -2,7 +2,7 @@
 // comes in as arguments, so it is tested without a DOM or ECharts.
 import type { EChartsCoreOption } from 'echarts/core'
 import type { Tokens } from '@/charts/tokens'
-import { tooltipBody, tooltipRow } from '@/charts/tooltip'
+import { escapeHTML, tooltipBody, tooltipRow } from '@/charts/tooltip'
 import { formatEnergy, formatNumber, type Lang } from '@/format'
 import { tokenOf, type HistoryKey, type PeriodPoint } from './points'
 
@@ -10,6 +10,9 @@ export interface HistoryText {
   lang: Lang
   names: Record<HistoryKey, string>
   noData: string
+  /** Note of a period with missing days; gets the formatted day list. */
+  incomplete: (days: string[]) => string
+  estimated: string
   /** Axis label of a period. */
   axis: (p: PeriodPoint) => string
   /** Tooltip heading of a period. */
@@ -28,7 +31,9 @@ export function tooltipHTML(p: PeriodPoint, keys: HistoryKey[], t: Tokens, x: Hi
     const v = p.values[k]
     return tooltipRow(x.names[k], v === null ? x.noData : formatEnergy(v, x.lang), t[tokenOf[k]])
   })
-  return tooltipBody(x.title(p), rows)
+  const notes = [p.missing.length && `* ${x.incomplete(p.missing)}`, p.estimated && `≈ ${x.estimated}`]
+  const foot = notes.filter(Boolean).map((n) => `<div style="opacity:.7">${escapeHTML(String(n))}</div>`)
+  return tooltipBody(x.title(p), rows, foot.join(''))
 }
 
 /**
@@ -46,7 +51,8 @@ export function historyOption(
   return {
     animation: animate,
     grid: { left: gridPad, right: gridPad, top: gridPad, bottom: gridPad, outerBoundsMode: 'same' },
-    xAxis: { type: 'category', data: points.map(x.axis) },
+    // An incomplete period carries the same "*" as the energy table.
+    xAxis: { type: 'category', data: points.map((p) => x.axis(p) + (p.missing.length ? '*' : '')) },
     yAxis: { type: 'value', min: 0, axisLabel: { formatter: (v: number) => formatNumber(v, x.lang, 1, 0) } },
     tooltip: {
       trigger: 'axis',

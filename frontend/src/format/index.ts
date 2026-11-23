@@ -71,6 +71,19 @@ export function formatLocalDate(
   )
 }
 
+/**
+ * Sorted local dates as a short list: the newest `max` of them and "(+n)" for the older
+ * rest. The year shows only when the dates span more than one year.
+ */
+export function formatDayList(days: string[], lang: Lang, max = 5): string {
+  const shown = days.slice(-max)
+  const oneYear = days.every((d) => d.slice(0, 4) === days[0]?.slice(0, 4))
+  const options: Intl.DateTimeFormatOptions = oneYear ? { day: 'numeric', month: 'short' } : { dateStyle: 'medium' }
+  const list = shown.map((d) => formatLocalDate(d, lang, options)).join(', ')
+  const rest = days.length - shown.length
+  return rest > 0 ? `${list} (+${formatNumber(rest, lang, 0)})` : list
+}
+
 /** An instant, shown in the site's timezone. */
 export function formatDateTime(
   instant: Date | string,

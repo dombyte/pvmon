@@ -1,7 +1,7 @@
 // Energy per period for the history chart, its detail card and the range sum (spec 11.8).
 // Pure: driven by the energy answer only; values are matched by period key.
 import type { EnergySeries, EnergyValue, SiteModel } from '@/api/types'
-import { numberOf } from '@/energy/rows'
+import { missingDays, numberOf } from '@/energy/rows'
 import type { LocalDate } from '@/format/localdate'
 import { periodKey, periods, type Range } from './range'
 
@@ -45,8 +45,8 @@ export interface PeriodPoint {
   /** Wh per key, null without data. */
   values: Record<HistoryKey, number | null>
   selfSufficiency: number | null
-  /** Some days of the period have no data. */
-  incomplete: boolean
+  /** Days of the period with missing data, sorted. */
+  missing: string[]
   estimated: boolean
 }
 
@@ -67,7 +67,7 @@ export function periodPoints(series: Record<string, EnergySeries>, r: Range): Pe
       start,
       values,
       selfSufficiency: numberOf(at('selfSufficiency')),
-      incomplete: all.some((v) => numberOf(v) !== null && v.missing_days > 0),
+      missing: missingDays(all),
       estimated: all.some((v) => v.estimated),
     }
   })

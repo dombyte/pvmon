@@ -46,7 +46,11 @@ const day = (p: DayPoint) =>
           @click="toggle(p.date)"
         >
           <span class="mb-1.5 flex justify-between gap-2 text-sm">
-            <span class="font-semibold">{{ day(p) }}</span>
+            <span>
+              <span class="font-semibold">{{ day(p) }}</span>
+              <span v-if="p.incomplete" class="text-ink-2"> · {{ t('trend.incomplete') }}</span>
+              <span v-if="p.estimated" class="text-ink-2"> · ≈ {{ t('energy.estimated') }}</span>
+            </span>
             <span class="text-ink-2">
               {{ t('trend.selfSufficiency', { value: formatPercent(p.selfSufficiency, lang) }) }}
             </span>

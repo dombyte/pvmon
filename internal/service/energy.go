@@ -46,37 +46,46 @@ type EnergySeries struct {
 }
 
 // EnergyValue is one period. Value is Wh for energy series and percent for ratios; it
-// is marshalled as "wh" or "pct" and is null when there is no data, never 0.
+// is marshalled as "wh" or "pct" and is null when there is no data, never 0. Missing
+// lists the incomplete local days of the period (bucket level: the slot itself).
 type EnergyValue struct {
-	Period      string
-	Value       *float64
-	Ratio       bool
-	Complete    bool
-	Estimated   bool
-	MissingDays int
+	Period    string
+	Value     *float64
+	Ratio     bool
+	Complete  bool
+	Estimated bool
+	Missing   []string
+}
+
+// energyQuality is the shared part of both value shapes.
+type energyQuality struct {
+	Complete    bool     `json:"complete"`
+	Estimated   bool     `json:"estimated"`
+	MissingDays int      `json:"missing_days"`
+	Missing     []string `json:"missing"`
 }
 
 type energyWh struct {
-	Period      string   `json:"period"`
-	Wh          *float64 `json:"wh"`
-	Complete    bool     `json:"complete"`
-	Estimated   bool     `json:"estimated"`
-	MissingDays int      `json:"missing_days"`
+	Period string   `json:"period"`
+	Wh     *float64 `json:"wh"`
+	energyQuality
 }
 
 type energyPct struct {
-	Period      string   `json:"period"`
-	Pct         *float64 `json:"pct"`
-	Complete    bool     `json:"complete"`
-	Estimated   bool     `json:"estimated"`
-	MissingDays int      `json:"missing_days"`
+	Period string   `json:"period"`
+	Pct    *float64 `json:"pct"`
+	energyQuality
 }
 
 // MarshalJSON writes the number as "wh" or, for ratios, as "pct".
 func (v EnergyValue) MarshalJSON() ([]byte, error) {
-	var out any = energyWh{v.Period, v.Value, v.Complete, v.Estimated, v.MissingDays}
+	q := energyQuality{v.Complete, v.Estimated, len(v.Missing), v.Missing}
+	if q.Missing == nil {
+		q.Missing = []string{} // an empty list, never null
+	}
+	var out any = energyWh{v.Period, v.Value, q}
 	if v.Ratio {
-		out = energyPct{v.Period, v.Value, v.Complete, v.Estimated, v.MissingDays}
+		out = energyPct{v.Period, v.Value, q}
 	}
 	b, err := json.Marshal(out)
 	if err != nil {
@@ -120,7 +129,7 @@ func (s *Energy) Series(ctx context.Context, names []string, level string, from,
 func energyValue(v derive.PeriodValue, ratio bool) EnergyValue {
 	ev := EnergyValue{
 		Period: v.Period, Ratio: ratio, Complete: v.Complete, Estimated: v.Estimated,
-		MissingDays: v.MissingDays,
+		Missing: v.Missing,
 	}
 	if v.Value.Value != nil {
 		r := util.Round(*v.Value.Value, decimals)

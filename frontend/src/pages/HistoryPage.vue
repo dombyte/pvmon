@@ -6,7 +6,7 @@ import Card from '@/components/Card.vue'
 import Page from '@/components/Page.vue'
 import { useChart } from '@/charts/useChart'
 import { useEnergy } from '@/energy/useEnergy'
-import { formatEnergy, formatPercent, missing, type Lang } from '@/format'
+import { formatDayList, formatEnergy, formatPercent, missing, type Lang } from '@/format'
 import { todayIn } from '@/format/localdate'
 import { historyOption, type HistoryText } from '@/history/historyOption'
 import { axisLabel, periodTitle, rangeLabel } from '@/history/labels'
@@ -66,6 +66,8 @@ const text = computed<HistoryText>(() => ({
   lang: lang.value,
   names: names.value,
   noData: t('trend.noData'),
+  incomplete: (days) => t('energy.incomplete', { days: formatDayList(days, lang.value) }),
+  estimated: t('energy.estimated'),
   axis: (p) => axisLabel(gran.value, p.start, lang.value),
   title: (p) => periodTitle(gran.value, p.start, lang.value),
 }))
@@ -169,9 +171,10 @@ const summary = computed(() =>
               <dd class="font-semibold tabular-nums">{{ energy(current.values[k]) }}</dd>
             </div>
           </dl>
-          <p v-if="current.incomplete || current.estimated" class="mt-1 text-xs text-ink-2">
-            {{ current.incomplete ? t('history.incomplete') : t('energy.estimated') }}
+          <p v-if="current.missing.length" class="mt-1 text-xs text-ink-2">
+            {{ t('energy.incomplete', { days: formatDayList(current.missing, lang) }) }}
           </p>
+          <p v-if="current.estimated" class="mt-1 text-xs text-ink-2">{{ t('energy.estimatedNote') }}</p>
           <RouterLink v-if="reportTo" :to="reportTo" class="mt-2 inline-block text-sm text-accent underline">
             {{ t('history.openReport') }}
           </RouterLink>

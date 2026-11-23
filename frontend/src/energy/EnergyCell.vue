@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { EnergyValue } from '@/api/types'
-import { formatNumber, formatPercent, missing, type Lang } from '@/format'
-import { numberOf } from './rows'
+import { formatDayList, formatNumber, formatPercent, missing, type Lang } from '@/format'
+import { missingDays, numberOf } from './rows'
 
 const props = defineProps<{ value: EnergyValue | undefined; ratio: boolean; unit?: boolean }>()
 const { t, locale } = useI18n()
@@ -18,9 +18,12 @@ const text = computed(() => {
   return props.unit ? `${kwh} kWh` : kwh
 })
 const approx = computed(() => props.value?.estimated === true && numberOf(props.value) !== null)
-const incomplete = computed(() => (props.value?.missing_days ?? 0) > 0)
+const days = computed(() => missingDays([props.value]))
+const incomplete = computed(() => days.value.length > 0)
 const title = computed(() =>
-  incomplete.value ? t('energy.incomplete', { n: props.value?.missing_days ?? 0 }) : undefined,
+  incomplete.value
+    ? t('energy.incomplete', { days: formatDayList(days.value, locale.value as Lang) })
+    : undefined,
 )
 </script>
 

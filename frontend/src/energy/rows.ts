@@ -63,6 +63,16 @@ export function kpiRows(rows: EnergyRow[], phone: boolean): EnergyRow[] {
 }
 
 /** The number of a value: Wh or percent, null when missing. */
+/**
+ * Incomplete days of the values that have a number, sorted and unique. A value without
+ * a number is a gap on its own and adds nothing here.
+ */
+export function missingDays(values: (EnergyValue | undefined)[]): string[] {
+  const days = new Set<string>()
+  for (const v of values) if (numberOf(v) !== null) for (const d of v?.missing ?? []) days.add(d)
+  return [...days].sort()
+}
+
 export function numberOf(v: EnergyValue | undefined): number | null {
   if (!v) return null
   return v.wh ?? v.pct ?? null

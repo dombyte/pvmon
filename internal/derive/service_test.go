@@ -122,7 +122,7 @@ func TestEnergyDays(t *testing.T) {
 		}
 		assert.Equal(t, w.complete, vs[i].Complete, w.period)
 		assert.Equal(t, w.est, vs[i].Estimated, w.period)
-		assert.Equal(t, w.missing, vs[i].MissingDays, w.period)
+		assert.Len(t, vs[i].Missing, w.missing, w.period)
 	}
 }
 
@@ -134,14 +134,15 @@ func TestEnergyMonthAndYear(t *testing.T) {
 	assert.Equal(t, "2026-11", vs[0].Period)
 	assert.InDelta(t, 240, *vs[0].Value.Value, 1e-9)
 	assert.False(t, vs[0].Complete)
-	assert.Equal(t, 2, vs[0].MissingDays, "17th and 18th; days before the first slot do not count")
+	assert.Equal(t, []string{"2026-11-17", "2026-11-18"}, vs[0].Missing,
+		"days before the first slot do not count")
 	assert.True(t, vs[0].Estimated)
 
 	vs = e.day(t, "pv/energy_out", LevelYear, 5, 5)
 	require.Len(t, vs, 1)
 	assert.Equal(t, "2026", vs[0].Period)
 	assert.InDelta(t, 240, *vs[0].Value.Value, 1e-9)
-	assert.Equal(t, 2, vs[0].MissingDays)
+	assert.Len(t, vs[0].Missing, 2)
 }
 
 func TestEnergyTotalWithCarry(t *testing.T) {
@@ -157,7 +158,7 @@ func TestEnergyTotalWithCarry(t *testing.T) {
 	require.NoError(t, err)
 	vs = e.day(t, "pv/energy_out", LevelTotal, 19, 19)
 	assert.InDelta(t, 1240, *vs[0].Value.Value, 1e-9)
-	assert.Equal(t, 2, vs[0].MissingDays)
+	assert.Len(t, vs[0].Missing, 2)
 }
 
 func TestEnergyBucketLevel(t *testing.T) {
@@ -170,7 +171,7 @@ func TestEnergyBucketLevel(t *testing.T) {
 	gap := vs[10]
 	assert.True(t, gap.Estimated)
 	assert.False(t, gap.Complete)
-	assert.Equal(t, 1, gap.MissingDays)
+	assert.Len(t, gap.Missing, 1)
 
 	vs = e.day(t, "pv/energy_out", LevelBucket, 19, 19)
 	require.Len(t, vs, 96)
@@ -189,7 +190,7 @@ func TestEnergyNoDataAndNeverStored(t *testing.T) {
 		require.NotEmpty(t, vs)
 		for _, v := range vs {
 			assert.Nil(t, v.Value.Value, string(level))
-			assert.Equal(t, 0, v.MissingDays, string(level)+" without any data nothing is missing")
+			assert.Empty(t, v.Missing, string(level)+" without any data nothing is missing")
 		}
 	}
 	// grid series were never stored: a formula over them has no data, never 0
@@ -248,7 +249,7 @@ func TestEnergyBeforeFirstSlotNotCached(t *testing.T) {
 				continue // the month and year of the first slot have data
 			}
 			assert.Nil(t, v.Value.Value, v.Period)
-			assert.Zero(t, v.MissingDays, v.Period)
+			assert.Empty(t, v.Missing, v.Period)
 		}
 	}
 	var n int
@@ -265,7 +266,7 @@ func TestEnergyClosedYearCached(t *testing.T) {
 		time.Date(2026, 6, 1, 0, 0, 0, 0, e.loc), time.Date(2026, 6, 1, 0, 0, 0, 0, e.loc))
 	require.NoError(t, err)
 	assert.InDelta(t, 240, *res[0].Values[0].Value.Value, 1e-9)
-	assert.Positive(t, res[0].Values[0].MissingDays)
+	assert.NotEmpty(t, res[0].Values[0].Missing)
 	got, err := e.st.Derive().CacheGet(context.Background(),
 		[]string{"pv/energy_out|year|2026", "pv/energy_out|month|2026-11"}, 0)
 	require.NoError(t, err)

@@ -14,6 +14,7 @@ const energy = (name: string, wh: (number | null)[]): EnergySeries => ({
     complete: v !== null,
     estimated: false,
     missing_days: 0,
+    missing: [],
   })),
 })
 

@@ -26,7 +26,7 @@ func TestEnergySeries(t *testing.T) {
 		Return([]derive.Result{
 			{Name: "site/pv", Values: []derive.PeriodValue{
 				{Period: "2026-11-18", Value: derive.Value{Value: ptr(6213.4567), Complete: true}},
-				{Period: "2026-11-19", Value: derive.Value{MissingDays: 1}},
+				{Period: "2026-11-19", Value: derive.Value{Missing: []string{"2026-11-19"}}},
 			}},
 			{Name: "site/self", Ratio: true, Values: []derive.PeriodValue{
 				{Period: "2026-11-18", Value: derive.Value{Value: ptr(55.555), Estimated: true}},
@@ -41,11 +41,14 @@ func TestEnergySeries(t *testing.T) {
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"series":[
 	 {"name":"site/pv","unit":"Wh","values":[
-	  {"period":"2026-11-18","wh":6213.46,"complete":true,"estimated":false,"missing_days":0},
-	  {"period":"2026-11-19","wh":null,"complete":false,"estimated":false,"missing_days":1}]},
+	  {"period":"2026-11-18","wh":6213.46,"complete":true,"estimated":false,"missing_days":0,"missing":[]},
+	  {"period":"2026-11-19","wh":null,"complete":false,"estimated":false,"missing_days":1,
+	   "missing":["2026-11-19"]}]},
 	 {"name":"site/self","unit":"%","values":[
-	  {"period":"2026-11-18","pct":55.56,"complete":false,"estimated":true,"missing_days":0},
-	  {"period":"2026-11-19","pct":null,"complete":false,"estimated":false,"missing_days":0}]}]}`,
+	  {"period":"2026-11-18","pct":55.56,"complete":false,"estimated":true,"missing_days":0,
+	   "missing":[]},
+	  {"period":"2026-11-19","pct":null,"complete":false,"estimated":false,"missing_days":0,
+	   "missing":[]}]}]}`,
 		string(b))
 }
 

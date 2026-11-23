@@ -8,6 +8,8 @@ const text: HistoryText = {
   lang: 'de',
   names: { pv: 'PV', consumption: 'Verbrauch <x>', gridIn: 'Bezug', gridOut: 'Einspeisung' },
   noData: 'keine Daten',
+  incomplete: (days) => `fehlt: ${days.join(', ')}`,
+  estimated: 'geschätzt',
   axis: (p) => p.start.slice(8),
   title: (p) => p.start,
 }
@@ -15,7 +17,7 @@ const point = (start: string, pv: number | null): PeriodPoint => ({
   start,
   values: { pv, consumption: 2000, gridIn: null, gridOut: null },
   selfSufficiency: null,
-  incomplete: false,
+  missing: [],
   estimated: false,
 })
 
@@ -45,5 +47,14 @@ describe('history option', () => {
     expect(html).toContain('background:pv')
     expect(html).toContain('keine Daten')
     expect(html).toContain('Verbrauch &#60;x&#62;')
+  })
+
+  it('marks incomplete periods on the axis and names the days in the tooltip', () => {
+    const p = { ...point('2026-11-18', 4000), missing: ['2026-11-18'], estimated: true }
+    const o = historyOption([p], ['pv'], null, tokens, text, false) as { xAxis: { data: string[] } }
+    expect(o.xAxis.data).toEqual(['18*'])
+    const html = tooltipHTML(p, ['pv'], tokens, text)
+    expect(html).toContain('* fehlt: 2026-11-18')
+    expect(html).toContain('≈ geschätzt')
   })
 })

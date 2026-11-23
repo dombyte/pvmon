@@ -5,15 +5,16 @@ import { latest } from './range'
 
 const site = (series: string[]) => ({ site_series: series }) as unknown as SiteModel
 
-const energy = (name: string, values: [string, number | null, number?][]): EnergySeries => ({
+const energy = (name: string, values: [string, number | null, string[]?][]): EnergySeries => ({
   name,
   unit: name.endsWith('sufficiency') ? '%' : 'Wh',
-  values: values.map(([period, v, missing = 0]) => ({
+  values: values.map(([period, v, missing = []]) => ({
     period,
     wh: v,
-    complete: missing === 0,
+    complete: missing.length === 0,
     estimated: false,
-    missing_days: missing,
+    missing_days: missing.length,
+    missing,
   })),
 })
 
@@ -32,14 +33,15 @@ describe('history points', () => {
   it('matches values by period key and sums the range', () => {
     const r = latest('month', 3, '2026-11-19')
     const series = {
-      'site/pv': energy('site/pv', [['2026-11', 3000], ['2026-09', 9000, 2]]),
+      'site/pv': energy('site/pv', [['2026-11', 3000], ['2026-09', 9000, ['2026-09-03', '2026-09-04']]]),
       'site/consumption': energy('site/consumption', [['2026-09', 10000], ['2026-11', 5000]]),
       'site/grid_in': energy('site/grid_in', [['2026-09', 4000], ['2026-11', 2500]]),
     }
     const pts = periodPoints(series, r)
     expect(pts.map((p) => p.start)).toEqual(['2026-09-01', '2026-10-01', '2026-11-01'])
     expect(pts[0]?.values.pv).toBe(9000)
-    expect(pts[0]?.incomplete).toBe(true)
+    expect(pts[0]?.missing).toEqual(['2026-09-03', '2026-09-04'])
+    expect(pts[2]?.missing).toEqual([])
     expect(pts[1]?.values.consumption).toBeNull()
     const keys = historyKeys(site(['site/pv', 'site/consumption', 'site/grid_in']))
     const sum = rangeSum(pts, keys)
