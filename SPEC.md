@@ -380,7 +380,8 @@ Pvmon keeps neither lifetime values nor daily values internally. It keeps **ener
 - the remainder below 1 Wh (float64)
 - the effective resolution
 - the last confirmed reset of its group
-- the last poll that read the series (`seen`, the restart point of a pending reset)
+- the last poll that read the series (`seen`, the restart point of a pending reset and of the outage check after a restart)
+- the start of the first outage since the last raw value changed (`gap`, 0 = none), so a delta booked in a later run is still flagged
 
 Pvmon writes the state in the same transaction as the bucket upsert. The raw base and the booked energy therefore always match after a crash.
 
@@ -391,7 +392,16 @@ Pvmon writes the state in the same transaction as the bucket upsert. The raw bas
 - At least one poll of that device failed since its last successful poll.
 - The app was not running in between.
 
-A slow cycle on a busy bus is not a gap. For `lifetime` and `daily_reset`, the counter delta covers the gap. Pvmon spreads it evenly over the buckets of the gap and flags it `estimated`. The total is exact, so the affected days stay complete and show ≈. For `none`, the gap stays a gap: pvmon flags the slots from the last successful poll to the current poll `gap`, so the affected days are incomplete.
+**Outage.** An outage is a gap poll more than the device interval + 5 min after the last successful poll. After a restart, the last successful poll is `seen`. One failed poll and a quick restart are slow cycles, not outages.
+
+**Spreading a counter delta.** A counter delta covers the time since its base exactly. Pvmon spreads it over the slots of that time:
+
+- in proportion to the power of the same block in the direction of the counter (section 2), integrated per slot (trapezoid between polls, bridged over failed polls and outages). A coarse step (for example 0.1 kWh) then lands where the power flowed.
+- evenly when the block has no power, the power does not cover the whole time (after a restart) or shows no flow in it.
+
+Every slot of the time gets a row, also with 0 Wh.
+
+**Estimates.** For `lifetime` and `daily_reset`, only the slots from the start of an outage to the poll that books its delta are flagged `estimated`. A delta that falls into one slot is exact and is not flagged. The total is exact, so the affected days stay complete and show ≈. For `none`, the gap stays a gap: pvmon flags the slots from the last successful poll to the current poll `gap`, so the affected days are incomplete.
 
 ### 5.4 Completeness and estimates
 
@@ -547,7 +557,8 @@ CREATE TABLE counter_state (
   raw REAL, at INTEGER NOT NULL,         -- last raw value, unix ms
   remainder REAL NOT NULL DEFAULT 0,     -- below 1 Wh
   resolution REAL, reset INTEGER NOT NULL DEFAULT 0, -- unix ms of the last daily reset, 0 none
-  seen INTEGER NOT NULL DEFAULT 0        -- unix ms of the last poll that read it
+  seen INTEGER NOT NULL DEFAULT 0,       -- unix ms of the last poll that read it
+  gap INTEGER NOT NULL DEFAULT 0         -- unix ms of the first outage since raw changed, 0 none
 );
 
 CREATE TABLE status_event (

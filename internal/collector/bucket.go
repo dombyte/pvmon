@@ -68,23 +68,51 @@ type Energy struct {
 // AddEnergy books e proportionally to the time each slot overlaps (From, To]; From == To
 // books everything into the slot of To.
 func (a *Accumulator) AddEnergy(series int64, e Energy) {
-	wh, from, to, flags, counter := e.Wh, e.From, e.To, e.Flags, e.Counter
 	// A zero From would spread over every slot since year 1 and exhaust memory.
-	if from.IsZero() || !to.After(from) {
-		a.add(slotKey{series, Slot(to)}, wh, flags, counter)
+	if e.From.IsZero() || !e.To.After(e.From) {
+		a.add(slotKey{series, Slot(e.To)}, e.Wh, e.Flags, e.Counter)
 		return
 	}
-	total := to.Sub(from)
+	total := e.To.Sub(e.From).Seconds()
+	eachSlot(e.From, e.To, func(slot int64, part time.Duration) {
+		a.add(slotKey{series, slot}, e.Wh*part.Seconds()/total, e.Flags, e.counterAt(slot))
+	})
+}
+
+// AddShaped books e over the slots of (From, To] in proportion to their weight w (energy
+// integrated from power). Without weight in the span it books like AddEnergy. Every slot of
+// the span gets a row, also with 0 Wh, so the slots are complete as with AddEnergy.
+func (a *Accumulator) AddShaped(series int64, e Energy, w map[int64]float64) {
+	total := 0.0
+	for slot, x := range w {
+		if slot >= Slot(e.From) && slot <= Slot(e.To) {
+			total += x
+		}
+	}
+	if total <= 0 || e.From.IsZero() || !e.To.After(e.From) {
+		a.AddEnergy(series, e)
+		return
+	}
+	eachSlot(e.From, e.To, func(slot int64, _ time.Duration) {
+		a.add(slotKey{series, slot}, e.Wh*w[slot]/total, e.Flags, e.counterAt(slot))
+	})
+}
+
+// counterAt is the raw counter for slot: only the slot of To ends with it.
+func (e Energy) counterAt(slot int64) *float64 {
+	if slot == Slot(e.To) {
+		return e.Counter
+	}
+	return nil
+}
+
+// eachSlot calls f for every slot that overlaps (from, to] with the length of the overlap.
+func eachSlot(from, to time.Time, f func(slot int64, part time.Duration)) {
 	for slot := Slot(from); slot <= Slot(to); slot++ {
 		start, end := maxTime(from, SlotStart(slot)), minTime(to, SlotStart(slot).Add(slotLen))
-		if !end.After(start) {
-			continue
+		if end.After(start) {
+			f(slot, end.Sub(start))
 		}
-		var c *float64
-		if slot == Slot(to) {
-			c = counter
-		}
-		a.add(slotKey{series, slot}, wh*end.Sub(start).Seconds()/total.Seconds(), flags, c)
 	}
 }
 

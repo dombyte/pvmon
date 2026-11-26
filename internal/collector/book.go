@@ -17,6 +17,9 @@ type booking struct {
 	deltas map[ref]Delta
 	from   map[ref]time.Time
 	res    *pollResult
+	// gapFrom is the start of an outage that the delta of a counter covers, as before the
+	// poll moved any base.
+	gapFrom map[ref]time.Time
 }
 
 // bookCounters books direct counters and saves every counter state.
@@ -32,12 +35,39 @@ func (r *deviceRun) bookCounters(b *booking) {
 			continue
 		}
 		if cp.book != nil && bookable(d, read) {
-			b.acc.AddEnergy(r.ids[*cp.book], Energy{
-				Wh: d.Wh, From: b.from[cp.ref], To: b.at,
-				Flags: flagsOf(d), Counter: base,
-			})
+			r.bookDelta(b, cp, d, base)
+		}
+		if baseAt.Equal(b.at) {
+			r.rebase(cp.ref, b.at)
 		}
 		b.acc.SetCounter(r.counterState(cp, base, baseAt, b.at))
+	}
+}
+
+// bookDelta books a counter delta, shaped by the meter's power where it covers the span.
+func (r *deviceRun) bookDelta(b *booking, cp counterPlan, d Delta, base *float64) {
+	e := Energy{Wh: d.Wh, From: b.from[cp.ref], To: b.at, Flags: flagsOf(d), Counter: base}
+	var w map[int64]float64
+	if s, ok := r.shapes[cp.ref]; ok {
+		w = s.Weights(e.From)
+	}
+	b.acc.AddShaped(r.ids[*cp.book], e, w)
+	r.markEstimated(b, cp.ref, *cp.book)
+}
+
+// markEstimated flags the slots from the outage start to this poll estimated: there the
+// spread of the delta is a guess (spec 5.3). A delta that falls into one slot is exact.
+func (r *deviceRun) markEstimated(b *booking, x ref, series ...storage.SeriesKey) {
+	g := b.gapFrom[x]
+	if g.IsZero() || Slot(b.from[x]) == Slot(b.at) {
+		return
+	}
+	start := maxTime(g, b.from[x])
+	if !b.at.After(start) {
+		return
+	}
+	for _, s := range series {
+		b.acc.AddEnergy(r.ids[s], Energy{From: start, To: b.at, Flags: storage.FlagEstimated})
 	}
 }
 
@@ -56,6 +86,9 @@ func (r *deviceRun) counterState(cp counterPlan, base *float64, at, seen time.Ti
 	}
 	if g := r.groupOf(cp.ref); g != nil && !g.LastReset().IsZero() {
 		st.ResetAt = g.LastReset().UnixMilli()
+	}
+	if g := r.gapFrom[cp.ref]; !g.IsZero() {
+		st.GapFrom = g.UnixMilli()
 	}
 	return st
 }
@@ -173,7 +206,8 @@ func (r *deviceRun) bookNetting(b *booking) {
 		r.bookCancelled(b, np, min(b.deltas[np.imp].Wh, b.deltas[np.exp].Wh))
 	}
 	if ok {
-		r.bookNet(b, np, net, flagsOf(Delta{Gap: b.gap}))
+		r.bookNet(b, np, net)
+		r.markEstimated(b, np.imp, np.in, np.out)
 	}
 }
 
@@ -211,7 +245,7 @@ func (r *deviceRun) netPower(b *booking, np *nettingPlan) (float64, bool) {
 	return r.netInt.Update(p.Num, b.at, false)
 }
 
-func (r *deviceRun) bookNet(b *booking, np *nettingPlan, net float64, flags int) {
+func (r *deviceRun) bookNet(b *booking, np *nettingPlan, net float64) {
 	from := b.from[np.imp]
 	if !b.gap {
 		from = maxTime(from, r.lastOK)
@@ -221,8 +255,8 @@ func (r *deviceRun) bookNet(b *booking, np *nettingPlan, net float64, flags int)
 		key, other, net = np.out, np.in, -net
 	}
 	// The other direction gets 0 Wh, so both series have complete slots.
-	b.acc.AddEnergy(r.ids[key], Energy{Wh: net, From: from, To: b.at, Flags: flags})
-	b.acc.AddEnergy(r.ids[other], Energy{From: from, To: b.at, Flags: flags})
+	b.acc.AddEnergy(r.ids[key], Energy{Wh: net, From: from, To: b.at})
+	b.acc.AddEnergy(r.ids[other], Energy{From: from, To: b.at})
 }
 
 // nettingMethod picks method 1 while both counters resolve ≤ 1 Wh, else method 2, and

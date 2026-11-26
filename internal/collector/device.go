@@ -27,6 +27,8 @@ type deviceRun struct {
 	life    map[ref]*Lifetime
 	groups  map[string]*groupRun
 	integ   map[ref]*Integrator
+	shapes  map[ref]*Shape    // power shape per counter with a power channel
+	gapFrom map[ref]time.Time // start of the first outage since the counter's base
 	netInt  Integrator
 	netMode string
 	status  map[string]int64 // last stored code per status register
@@ -67,24 +69,39 @@ func newDeviceRun(in runInput) *deviceRun {
 	r := &deviceRun{
 		dev: d, plan: pl, src: src, ids: ids, life: map[ref]*Lifetime{},
 		groups: map[string]*groupRun{}, integ: map[ref]*Integrator{},
+		shapes: map[ref]*Shape{}, gapFrom: map[ref]time.Time{},
 		status: map[string]int64{}, conn: -1, logged: map[string]bool{},
 	}
 	for _, cp := range pl.counters {
-		st, ok := states[ids[cp.input]]
-		rs := counterRestore{}
-		if ok && st.Raw != nil {
-			rs.base, rs.at, rs.seen = st.Raw, time.UnixMilli(st.At), time.UnixMilli(st.Seen)
-			r.lastOK = maxTime(r.lastOK, rs.at)
-		}
-		if ok && st.ResetAt > 0 {
-			rs.resetAt = time.UnixMilli(st.ResetAt)
-		}
-		r.addCounter(cp, rs, loc, rollover)
+		r.restoreCounter(cp, states[ids[cp.input]], loc, rollover)
 	}
 	for _, ip := range pl.integrates {
 		r.integ[ip.power] = &Integrator{}
 	}
 	return r
+}
+
+// restoreCounter restores the tracker, outage start and shape of one counter input. A
+// missing state is the zero value.
+func (r *deviceRun) restoreCounter(cp counterPlan, st storage.CounterState,
+	loc *time.Location, rollover time.Duration,
+) {
+	rs := counterRestore{}
+	if st.Raw != nil {
+		rs.base, rs.at, rs.seen = st.Raw, time.UnixMilli(st.At), time.UnixMilli(st.Seen)
+		// The last read, not the last change: a coarse counter may not move for hours.
+		r.lastOK = maxTime(r.lastOK, maxTime(rs.at, rs.seen))
+	}
+	if st.ResetAt > 0 {
+		rs.resetAt = time.UnixMilli(st.ResetAt)
+	}
+	if st.GapFrom > 0 {
+		r.gapFrom[cp.ref] = time.UnixMilli(st.GapFrom)
+	}
+	if cp.sign != 0 {
+		r.shapes[cp.ref] = NewShape(cp.sign)
+	}
+	r.addCounter(cp, rs, loc, rollover)
 }
 
 // counterRestore is the persisted state of one counter input.
@@ -125,10 +142,49 @@ func (r *deviceRun) groupOf(x ref) *Group {
 	return nil
 }
 
-// isGap reports whether a poll at at is a gap poll.
+// isGap reports whether a poll at at does not follow the previous poll directly: a poll
+// failed in between or the device was not read for a long time.
 func (r *deviceRun) isGap(at time.Time) bool {
-	return r.failed || r.lastOK.IsZero() || at.Before(r.lastOK) ||
+	return r.failed || r.isOutage(at)
+}
+
+// isOutage reports whether the device was not read for longer than a slow cycle (spec 5.2,
+// 5.3). One failed poll in between is a slow cycle.
+func (r *deviceRun) isOutage(at time.Time) bool {
+	return r.lastOK.IsZero() || at.Before(r.lastOK) ||
 		at.Sub(r.lastOK) > r.dev.Interval+GapAfter
+}
+
+// noteOutage remembers where an outage began for every counter: the delta that later moves
+// its base covers the outage, also when that happens in a later run.
+func (r *deviceRun) noteOutage(at time.Time) {
+	if r.lastOK.IsZero() || !r.isOutage(at) {
+		return
+	}
+	for _, cp := range r.plan.counters {
+		if r.gapFrom[cp.ref].IsZero() {
+			r.gapFrom[cp.ref] = r.lastOK
+		}
+	}
+}
+
+// addPower feeds the power of this poll into the shapes; a poll without a valid power is
+// bridged by the next one.
+func (r *deviceRun) addPower(vals decoded, at time.Time) {
+	for _, cp := range r.plan.counters {
+		s, ok := r.shapes[cp.ref]
+		if p, valid := vals.get(cp.power); ok && valid {
+			s.Add(p.Num, at)
+		}
+	}
+}
+
+// rebase starts a new span for counter x after its base moved at at.
+func (r *deviceRun) rebase(x ref, at time.Time) {
+	delete(r.gapFrom, x)
+	if s, ok := r.shapes[x]; ok {
+		s.Cut(at)
+	}
 }
 
 // counterBase returns the base value and time of a counter before this poll.
@@ -184,13 +240,10 @@ func decodeAll(p *profile.Profile, n profile.Needs, raw profile.Raw) decoded {
 	return out
 }
 
-// flagsOf maps a counter delta to bucket flags. A counter covers its gap exactly, so a gap
-// delta is only estimated (its spread over time), never missing (spec 5.3).
+// flagsOf maps a counter delta to bucket flags. The estimated flag of an outage is set by
+// markEstimated on the slots of the outage only.
 func flagsOf(d Delta) int {
 	f := 0
-	if d.Gap {
-		f |= storage.FlagEstimated
-	}
 	if d.ResetSeen {
 		f |= storage.FlagResetSeen
 	}

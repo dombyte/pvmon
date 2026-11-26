@@ -2,6 +2,7 @@ package collector
 
 import (
 	"context"
+	"maps"
 	"time"
 
 	"github.com/dombyte/pvmon/internal/health"
@@ -49,7 +50,12 @@ func (c *Collector) process(r *deviceRun, raw profile.Raw, at time.Time) pollRes
 		}
 		from[cp.ref] = baseAt
 	}
-	b := &booking{acc: c.acc, at: at, gap: gap, vals: vals, from: from, res: &res}
+	r.noteOutage(at)
+	r.addPower(vals, at)
+	b := &booking{
+		acc: c.acc, at: at, gap: gap, vals: vals, from: from, res: &res,
+		gapFrom: maps.Clone(r.gapFrom),
+	}
 	b.deltas = r.deltas(vals, at, gap)
 	for x, d := range b.deltas {
 		if !d.From.IsZero() {

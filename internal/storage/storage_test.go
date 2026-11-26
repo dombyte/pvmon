@@ -64,7 +64,7 @@ func TestSeriesAndFlush(t *testing.T) {
 			{SeriesID: en, Slot: 100, Wh: 5, Flags: FlagGap},
 			{SeriesID: en, Slot: 101, Wh: 1, Flags: FlagEstimated},
 		},
-		Counters: []CounterState{{SeriesID: en, Raw: ptr(1016), At: 6, Resolution: 0.1, ResetAt: 1, Seen: 7}},
+		Counters: []CounterState{{SeriesID: en, Raw: ptr(1016), At: 6, Resolution: 0.1, ResetAt: 1, Seen: 7, GapFrom: 5}},
 	}
 	require.NoError(t, c.Flush(ctx, b))
 
@@ -95,6 +95,7 @@ func TestSeriesAndFlush(t *testing.T) {
 	assert.InDelta(t, 1016, *st[en].Raw, 0)
 	assert.Equal(t, int64(1), st[en].ResetAt)
 	assert.Equal(t, int64(7), st[en].Seen)
+	assert.Equal(t, int64(5), st[en].GapFrom, "the outage start survives a restart")
 	empty, err := c.CounterStates(ctx, nil)
 	require.NoError(t, err)
 	assert.Empty(t, empty)
