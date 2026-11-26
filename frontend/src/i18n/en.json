@@ -169,10 +169,7 @@
     "colPeriod": "Period",
     "summary": "{range}: {values}",
     "chart": "Chart, scrolls sideways",
-    "custom": "Custom",
-    "from": "From",
-    "to": "To",
-    "apply": "Apply"
+    "custom": "Custom"
   },
   "day": {
     "subtitle": "Power in 15-minute steps (averages)",
@@ -253,8 +250,6 @@
   },
   "reports": {
     "period": "Period",
-    "from": "From",
-    "to": "To",
     "compareLabel": "Comparison",
     "pdf": "PDF",
     "csv": "CSV",
@@ -334,8 +329,10 @@
     "nextYear": "Next year",
     "prevYears": "Earlier years",
     "nextYears": "Later years",
-    "thisMonth": "This month",
-    "thisYear": "This year"
+    "pickStart": "Choose the start",
+    "pickEnd": "Choose the end",
+    "start": "Start",
+    "end": "End"
   },
   "offline": {
     "banner": "Offline: data from {time}."

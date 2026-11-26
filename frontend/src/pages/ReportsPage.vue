@@ -5,7 +5,7 @@ import { Download } from '@lucide/vue'
 import Card from '@/components/Card.vue'
 import Page from '@/components/Page.vue'
 import SelectField from '@/components/select/SelectField.vue'
-import DateField from '@/components/date/DateField.vue'
+import DateRangeField from '@/components/date/DateRangeField.vue'
 import { formatLocalDate, type Lang } from '@/format'
 import {
   compares,
@@ -78,26 +78,14 @@ const period = computed(() =>
         </div>
         <div v-if="query" class="flex flex-wrap items-end gap-4">
           <div class="flex flex-col gap-1 text-sm">
-            <span class="text-ink-2" aria-hidden="true">{{ t('reports.from') }}</span>
-            <DateField
-              :model-value="query.from"
-              :label="t('reports.from')"
+            <span class="text-ink-2" aria-hidden="true">{{ t('reports.period') }}</span>
+            <DateRangeField
+              :from="query.from"
+              :to="query.to"
+              :label="t('reports.period')"
               :max="today"
               :today="today"
-              :other="query.to"
-              @update:model-value="(d) => update({ from: d })"
-            />
-          </div>
-          <div class="flex flex-col gap-1 text-sm">
-            <span class="text-ink-2" aria-hidden="true">{{ t('reports.to') }}</span>
-            <DateField
-              :model-value="query.to"
-              :label="t('reports.to')"
-              :min="query.from"
-              :max="today"
-              :today="today"
-              :other="query.from"
-              @update:model-value="(d) => update({ to: d })"
+              @pick="(from, to) => update({ from, to })"
             />
           </div>
           <div class="flex flex-col gap-1 text-sm">

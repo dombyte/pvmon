@@ -6,7 +6,16 @@ import { useI18n } from 'vue-i18n'
 import { ChevronLeft, ChevronRight } from '@lucide/vue'
 import { formatLocalDate, type Lang } from '@/format'
 import { addDays, type LocalDate } from '@/format/localdate'
-import { clampDate, mondayRef, monthGrid, selectable, shiftMonth } from './calendar'
+import {
+  bandOf,
+  clampDate,
+  mondayRef,
+  monthGrid,
+  selectable,
+  shiftMonth,
+  type Cell,
+} from './calendar'
+import { useSlide } from './slide'
 
 const props = defineProps<{
   value: LocalDate
@@ -14,9 +23,11 @@ const props = defineProps<{
   max?: LocalDate
   /** The other end of a range, highlighted between it and `value`. */
   other?: LocalDate
+  /** The still open end of a range: banded like `other`, but not picked yet. */
+  preview?: LocalDate
   today?: LocalDate
 }>()
-const emit = defineEmits<{ pick: [LocalDate] }>()
+const emit = defineEmits<{ pick: [LocalDate]; hover: [LocalDate] }>()
 const { t, locale } = useI18n()
 const lang = computed(() => locale.value as Lang)
 
@@ -41,9 +52,19 @@ const weekdays = computed(() =>
 )
 const canPrev = computed(() => !props.min || month.value.slice(0, 7) > props.min.slice(0, 7))
 const canNext = computed(() => !props.max || month.value.slice(0, 7) < props.max.slice(0, 7))
-const lo = computed(() => (props.other && props.other < props.value ? props.other : props.value))
-const hi = computed(() => (props.other && props.other > props.value ? props.other : props.value))
-const inRange = (d: LocalDate) => !!props.other && d > lo.value && d < hi.value
+const slide = useSlide(() => month.value.slice(0, 7))
+// A range hides the days of other months, so that no day shows (or is banded) twice.
+const ranged = computed(() => !!(props.other || props.preview))
+const end = (d: LocalDate) => d === props.value || d === props.other
+function wrap(c: Cell, i: number): string[] {
+  const next = addDays(c.date, 1)
+  return [
+    `band band-${bandOf(c.date, props.value, props.preview ?? props.other)}`,
+    i % 7 === 0 || c.date.endsWith('-01') ? 'cap-left' : '',
+    i % 7 === 6 || next.endsWith('-01') ? 'cap-right' : '',
+    ranged.value && !c.inMonth ? 'invisible' : '',
+  ]
+}
 const label = (d: LocalDate) =>
   formatLocalDate(d, lang.value, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -101,37 +122,32 @@ function pick(d: LocalDate): void {
     <div class="grid grid-cols-7 text-center text-xs text-ink-2" aria-hidden="true">
       <span v-for="w in weekdays" :key="w" class="py-1">{{ w }}</span>
     </div>
-    <div ref="grid" class="grid grid-cols-7 gap-y-1" role="group" :aria-label="title" @keydown="onKey">
-      <button
-        v-for="c in cells"
-        :key="c.date"
-        type="button"
-        :data-date="c.date"
-        class="relative mx-auto grid size-10 place-items-center rounded-full text-sm tabular-nums disabled:opacity-25"
-        :class="[
-          c.date === value || c.date === other
-            ? 'bg-accent font-semibold text-on-accent'
-            : inRange(c.date)
-              ? 'toggle-range'
-              : 'hover:bg-well',
-          !c.inMonth && c.date !== value ? 'text-ink-2' : '',
-          c.date === today && c.date !== value ? 'ring-1 ring-accent' : '',
-        ]"
-        :disabled="!selectable(c.date, min, max)"
-        :tabindex="c.date === focused ? 0 : -1"
-        :aria-label="label(c.date)"
-        :aria-pressed="c.date === value"
-        :aria-current="c.date === today ? 'date' : undefined"
-        @click="pick(c.date)"
-      >
-        {{ Number(c.date.slice(8)) }}
-      </button>
+    <div ref="grid" class="overflow-x-clip" role="group" :aria-label="title" @keydown="onKey">
+      <div :key="month.slice(0, 7)" class="grid grid-cols-7 gap-y-1" :class="slide">
+        <div v-for="(c, i) in cells" :key="c.date" :class="wrap(c, i)">
+          <button
+            type="button"
+            :data-date="c.date"
+            class="mx-auto grid size-10 place-items-center rounded-full text-sm tabular-nums disabled:opacity-25"
+            :class="[
+              end(c.date) ? 'range-end bg-accent font-semibold text-on-accent' : 'hover:bg-well',
+              c.date === preview && !end(c.date) ? 'range-preview' : '',
+              !c.inMonth && !end(c.date) ? 'text-ink-2' : '',
+              c.date === today && !end(c.date) ? 'ring-1 ring-accent' : '',
+            ]"
+            :disabled="!selectable(c.date, min, max)"
+            :tabindex="c.date === focused ? 0 : -1"
+            :aria-label="label(c.date)"
+            :aria-pressed="end(c.date)"
+            :aria-current="c.date === today ? 'date' : undefined"
+            @click="pick(c.date)"
+            @mouseenter="emit('hover', c.date)"
+            @focus="emit('hover', c.date)"
+          >
+            {{ Number(c.date.slice(8)) }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.toggle-range {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-}
-</style>

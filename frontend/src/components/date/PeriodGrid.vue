@@ -6,7 +6,15 @@ import { useI18n } from 'vue-i18n'
 import { ChevronLeft, ChevronRight } from '@lucide/vue'
 import { formatLocalDate, type Lang } from '@/format'
 import type { LocalDate } from '@/format/localdate'
-import { periodCells, periodOf, periodSelectable, shiftPeriod, yearsPerPage } from './calendar'
+import {
+  bandOf,
+  periodCells,
+  periodOf,
+  periodSelectable,
+  shiftPeriod,
+  yearsPerPage,
+} from './calendar'
+import { useSlide } from './slide'
 
 const props = defineProps<{
   unit: 'month' | 'year'
@@ -15,9 +23,11 @@ const props = defineProps<{
   min?: LocalDate
   max?: LocalDate
   other?: LocalDate
+  /** The still open end of a range: banded like `other`, but not picked yet. */
+  preview?: LocalDate
   today?: LocalDate
 }>()
-const emit = defineEmits<{ pick: [LocalDate] }>()
+const emit = defineEmits<{ pick: [LocalDate]; hover: [LocalDate] }>()
 const { t, locale } = useI18n()
 const lang = computed(() => locale.value as Lang)
 const cols = 3
@@ -25,6 +35,7 @@ const cols = 3
 const of = (d: LocalDate | undefined) => (d ? periodOf(props.unit, d) : '')
 const value = computed(() => of(props.value))
 const other = computed(() => of(props.other))
+const preview = computed(() => of(props.preview))
 const today = computed(() => of(props.today))
 const focused = ref(value.value || today.value)
 const page = ref(focused.value)
@@ -52,9 +63,13 @@ function turn(dir: -1 | 1): void {
   page.value = shiftPeriod(props.unit, page.value, dir * pageStep.value)
 }
 
-const lo = computed(() => (other.value && other.value < value.value ? other.value : value.value))
-const hi = computed(() => (other.value && other.value > value.value ? other.value : value.value))
-const inRange = (d: LocalDate) => !!other.value && d > lo.value && d < hi.value
+const slide = useSlide(() => cells.value[0]!)
+const end = (d: LocalDate) => d === value.value || d === other.value
+const wrap = (c: LocalDate, i: number) => [
+  `band band-${bandOf(c, value.value, preview.value || other.value)}`,
+  i % cols === 0 ? 'cap-left' : '',
+  i % cols === cols - 1 ? 'cap-right' : '',
+]
 const text = (d: LocalDate) =>
   props.unit === 'month' ? formatLocalDate(d, lang.value, { month: 'short' }) : d.slice(0, 4)
 const label = (d: LocalDate) =>
@@ -104,36 +119,31 @@ function pick(d: LocalDate): void {
         <ChevronRight :size="18" aria-hidden="true" />
       </button>
     </div>
-    <div ref="grid" class="grid grid-cols-3 gap-2" role="group" :aria-label="title" @keydown="onKey">
-      <button
-        v-for="c in cells"
-        :key="c"
-        type="button"
-        :data-date="c"
-        class="grid min-h-11 place-items-center rounded-control text-sm tabular-nums disabled:opacity-25"
-        :class="[
-          c === value || c === other
-            ? 'bg-accent font-semibold text-on-accent'
-            : inRange(c)
-              ? 'toggle-range'
-              : 'hover:bg-well',
-          c === today && c !== value ? 'ring-1 ring-accent' : '',
-        ]"
-        :disabled="!ok(c)"
-        :tabindex="c === focused ? 0 : -1"
-        :aria-label="label(c)"
-        :aria-pressed="c === value"
-        :aria-current="c === today ? 'date' : undefined"
-        @click="pick(c)"
-      >
-        {{ text(c) }}
-      </button>
+    <div ref="grid" class="overflow-x-clip" role="group" :aria-label="title" @keydown="onKey">
+      <div :key="cells[0]" class="grid grid-cols-3 gap-y-2" :class="slide">
+        <div v-for="(c, i) in cells" :key="c" class="grid [--cap:var(--radius-control)]" :class="wrap(c, i)">
+          <button
+            type="button"
+            :data-date="c"
+            class="grid min-h-11 place-items-center rounded-control text-sm tabular-nums disabled:opacity-25"
+            :class="[
+              end(c) ? 'range-end bg-accent font-semibold text-on-accent' : 'hover:bg-well',
+              c === preview && !end(c) ? 'range-preview' : '',
+              c === today && !end(c) ? 'ring-1 ring-accent' : '',
+            ]"
+            :disabled="!ok(c)"
+            :tabindex="c === focused ? 0 : -1"
+            :aria-label="label(c)"
+            :aria-pressed="end(c)"
+            :aria-current="c === today ? 'date' : undefined"
+            @click="pick(c)"
+            @mouseenter="emit('hover', c)"
+            @focus="emit('hover', c)"
+          >
+            {{ text(c) }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.toggle-range {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-}
-</style>

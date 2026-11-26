@@ -48,6 +48,22 @@ export function clampDate(date: LocalDate, min?: LocalDate, max?: LocalDate): Lo
   return date
 }
 
+/** The place of a cell in a highlighted range. */
+export type Band = 'start' | 'mid' | 'end'
+
+/** Where `date` lies in the range between `a` and `b` (any order); null outside. */
+export function bandOf(date: LocalDate, a?: LocalDate, b?: LocalDate): Band | null {
+  if (!a || !b || a === b) return null
+  const [lo, hi] = sortRange(a, b)
+  if (date < lo || date > hi) return null
+  return date === lo ? 'start' : date === hi ? 'end' : 'mid'
+}
+
+/** The two ends of a range, earlier first. */
+export function sortRange(a: LocalDate, b: LocalDate): [LocalDate, LocalDate] {
+  return a <= b ? [a, b] : [b, a]
+}
+
 /** What a picker chooses: a day, or a whole month or year (given as its first day). */
 export type Unit = 'day' | 'month' | 'year'
 

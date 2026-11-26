@@ -1025,7 +1025,7 @@ The UI is built entirely from `GET /api/v1/site`. It contains no hard-coded devi
 | Overview | Desktop: energy flow, KPI tiles today, energy table (today / month / year / total), 14-day PV vs consumption trend. Phone: "Power now" balance bars, 4 KPI tiles, energy card with period tabs, last 7 days list | capabilities |
 | Day view | 15-minute power of one day. PV area (min/max band as an opt-in chip). Consumption and loadpoint lines (a category with several loadpoints can be split into one line per meter, from its power gauge). Grid bars (import up, export down). Battery bars (charge up, discharge down) with the SoC line on a second axis. Synced crosshair with aligned time axes. Date from the calendar picker. Day summary (per meter when split) and data quality | series catalogue |
 | History | day / month / year bars per series with range picker (11.8) | series catalogue, `data_since` |
-| Reports | period presets, from/to calendar pickers and comparison select, preview (the period table is folded until opened), PDF/CSV download as blob (errors shown in the page) | capabilities |
+| Reports | period presets, one date range picker and comparison select, preview (the period table is folded until opened), PDF/CSV download as blob (errors shown in the page) | capabilities |
 | Devices | List with state, profile, verified flag, interval and the duration of the last poll. Detail page with all live channels of the profile, grouped (AC, DC/strings, battery, temperature), and the netting check for grid meters. Status: the connection and every status register of the profile as day bars (registers shown or hidden per device and browser), the messages of a selected day (`?day=`) or the newest 50 | profile |
 | Status | One row per device with its generic level per day (worst of `fault` > `offline` > `notice` > `ok` > `none`), the current level with its start time, and the live connection state. Hover on a day (desktop) shows how long each level lasted that day (the device page does the same per register message). Desktop shows 30 or 90 days (per browser, shared with the device page); the compact layout shows 30. A day opens the device page on that day (`/devices/{id}?day=…#status`) | devices |
 | Settings (admin) | connections, devices (probe, profile choice), meters (role, category, parent, label, capacity, kWp), app settings, users, API tokens, language, audit log | config API |
@@ -1081,7 +1081,7 @@ defineWidget({
 - Overview trend: hover shows the day. A click or tap pins the day below the chart (the others are dimmed) with "Day view" and, for finished days, "Open day report". A tap never navigates directly. The tooltip holds no links.
 - Colours come from role tokens. Loadpoint categories have their own tokens: wallbox `--ev`, `--heatpump`, `--heater`, `--other`. A theme switch re-registers the ECharts theme at runtime.
 - Loadpoints are named by category only ("Wallbox"), never with a count. Only the live flow shows the count.
-- All controls look the same. The user chooses every date in the themed calendar dialog (Monday first, keyboard navigation, bottom sheet in the compact layout). Every select uses the themed select field (button + listbox popup in the theme, keyboard and type-ahead, fixed-positioned so that cards never cover it). Selected toggles are tinted with the accent.
+- All controls look the same. The user chooses every date in the themed calendar dialog (Monday first, keyboard navigation, bottom sheet in the compact layout). A date range uses one dialog: the range shows as a continuous band, with a preview up to the hovered or focused cell after the first pick. Every select uses the themed select field (button + listbox popup in the theme, keyboard and type-ahead, fixed-positioned so that cards never cover it). Selected toggles are tinted with the accent.
 - Motion is short and subtle. It is off with `prefers-reduced-motion`. These motions exist:
   - pages fade in
   - popups and dialogs rise in
@@ -1096,7 +1096,7 @@ defineWidget({
 - The range button shows the range ("21 Oct – 19 Nov 2026"). The arrows shift the range by its length. "Next" is disabled at today.
 - The range button opens a bottom sheet (phone) or a popover (desktop). It offers these choices:
   - presets: days 7, 30, 90, 365; months 6, 12, 24, 36; years 3, 5, 10
-  - a custom range: start and end from the picker of the current granularity (days: the month calendar; months: the 12 months of a year; years: 12 years per page)
+  - a custom range: one range picker of the current granularity (days: the month calendar; months: the 12 months of a year; years: 12 years per page). Two picks set the two ends, in any order, and apply the range
 - Periods without data or in the future are disabled. The UI does not store a custom range.
 - Below the chart, a detail card shows the selected bar and the sum of the visible range, including "without data n of m".
 - The browser stores the last used granularity and range preset.

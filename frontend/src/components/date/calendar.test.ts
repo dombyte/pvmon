@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  bandOf,
   clampDate,
   monthGrid,
   periodCells,
@@ -8,6 +9,7 @@ import {
   selectable,
   shiftMonth,
   shiftPeriod,
+  sortRange,
 } from './calendar'
 
 describe('calendar', () => {
@@ -57,5 +59,23 @@ describe('month and year pickers', () => {
     expect(periodOf('day', '2026-11-19')).toBe('2026-11-19')
     expect(shiftPeriod('month', '2026-11-01', 3)).toBe('2027-02-01')
     expect(shiftPeriod('year', '2026-01-01', -12)).toBe('2014-01-01')
+  })
+})
+
+describe('range band', () => {
+  it('marks the ends and the days between, in either order', () => {
+    for (const [a, b] of [['2026-11-10', '2026-11-12'], ['2026-11-12', '2026-11-10']] as const) {
+      expect(bandOf('2026-11-09', a, b)).toBeNull()
+      expect(bandOf('2026-11-10', a, b)).toBe('start')
+      expect(bandOf('2026-11-11', a, b)).toBe('mid')
+      expect(bandOf('2026-11-12', a, b)).toBe('end')
+      expect(bandOf('2026-11-13', a, b)).toBeNull()
+    }
+    expect(sortRange('2026-11-12', '2026-11-10')).toEqual(['2026-11-10', '2026-11-12'])
+  })
+
+  it('has no band without a second end', () => {
+    expect(bandOf('2026-11-10', '2026-11-10')).toBeNull()
+    expect(bandOf('2026-11-10', '2026-11-10', '2026-11-10')).toBeNull()
   })
 })

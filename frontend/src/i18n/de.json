@@ -169,10 +169,7 @@
     "colPeriod": "Zeitraum",
     "summary": "{range}: {values}",
     "chart": "Diagramm, seitlich scrollbar",
-    "custom": "Benutzerdefiniert",
-    "from": "Von",
-    "to": "Bis",
-    "apply": "Anwenden"
+    "custom": "Benutzerdefiniert"
   },
   "day": {
     "subtitle": "Leistung in 15-Minuten-Schritten (Mittelwerte)",
@@ -253,8 +250,6 @@
   },
   "reports": {
     "period": "Zeitraum",
-    "from": "Von",
-    "to": "Bis",
     "compareLabel": "Vergleich",
     "pdf": "PDF",
     "csv": "CSV",
@@ -334,8 +329,10 @@
     "nextYear": "Nächstes Jahr",
     "prevYears": "Frühere Jahre",
     "nextYears": "Spätere Jahre",
-    "thisMonth": "Dieser Monat",
-    "thisYear": "Dieses Jahr"
+    "pickStart": "Beginn wählen",
+    "pickEnd": "Ende wählen",
+    "start": "Beginn",
+    "end": "Ende"
   },
   "offline": {
     "banner": "Offline: Daten vom {time}."
