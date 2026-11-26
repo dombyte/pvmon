@@ -47,7 +47,23 @@ func LoadKey(path string, create bool, rnd io.Reader) (*Cipher, error) {
 	if err != nil {
 		return nil, fmt.Errorf("configstore: secret key: %w", err)
 	}
+	if key, err = decodeKey(key); err != nil {
+		return nil, fmt.Errorf("configstore: secret key: %w", err)
+	}
 	return NewCipher(key, rnd)
+}
+
+// decodeKey accepts the base64 text form and the raw 32 bytes that pvmon up to v0.2.0
+// wrote.
+func decodeKey(data []byte) ([]byte, error) {
+	if len(data) == chacha20poly1305.KeySize {
+		return data, nil
+	}
+	key, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(data)))
+	if err != nil {
+		return nil, fmt.Errorf("decode base64: %w", err)
+	}
+	return key, nil
 }
 
 func newKey(path string, rnd io.Reader) ([]byte, error) {
@@ -55,10 +71,11 @@ func newKey(path string, rnd io.Reader) ([]byte, error) {
 	if _, err := io.ReadFull(rnd, key); err != nil {
 		return nil, fmt.Errorf("generate: %w", err)
 	}
-	if err := os.WriteFile(path, key, keyMode); err != nil {
+	text := base64.StdEncoding.EncodeToString(key) + "\n"
+	if err := os.WriteFile(path, []byte(text), keyMode); err != nil {
 		return nil, fmt.Errorf("write: %w", err)
 	}
-	return key, nil
+	return []byte(text), nil
 }
 
 // NewCipher builds a Cipher from a 32-byte key.
