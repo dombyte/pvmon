@@ -70,6 +70,7 @@ type CounterState struct {
 	Remainder  float64  // energy below 1 Wh not yet booked
 	Resolution float64
 	ResetAt    int64 // unix ms of the last confirmed daily reset of its group; 0 = none
+	GapFrom    int64 // unix ms of the first outage since Raw changed; 0 = none
 }
 
 // GaugeBucket is a (partial) 15-minute gauge aggregate; partials of a slot are merged.

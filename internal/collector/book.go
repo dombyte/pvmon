@@ -17,6 +17,9 @@ type booking struct {
 	deltas map[ref]Delta
 	from   map[ref]time.Time
 	res    *pollResult
+	// gapFrom is the start of an outage that the delta of a counter covers, as before the
+	// poll moved any base.
+	gapFrom map[ref]time.Time
 }
 
 // bookCounters books direct counters and saves every counter state.
@@ -32,12 +35,46 @@ func (r *deviceRun) bookCounters(b *booking) {
 			continue
 		}
 		if cp.book != nil && bookable(d, read) {
-			b.acc.AddEnergy(r.ids[*cp.book], Energy{
-				Wh: d.Wh, From: b.from[cp.ref], To: b.at,
-				Flags: flagsOf(d), Counter: base,
-			})
+			r.bookDelta(b, cp, d, base)
+		}
+		if baseAt.Equal(b.at) {
+			r.rebase(cp.ref, b.at)
 		}
 		b.acc.SetCounter(r.counterState(cp, base, baseAt, b.at))
+	}
+}
+
+// bookDelta books a counter delta, shaped by the meter's power where it covers the span.
+func (r *deviceRun) bookDelta(b *booking, cp counterPlan, d Delta, base *float64) {
+	e := Energy{Wh: d.Wh, From: b.from[cp.ref], To: b.at, Flags: flagsOf(d), Counter: base}
+	if d.Wh == 0 {
+		// The slots up to the last booking have their rows; write only what changed.
+		e.From = maxTime(e.From, r.booked[cp.ref])
+	}
+	var w map[int64]float64
+	if s, ok := r.shapes[cp.ref]; ok {
+		w = s.Weights(e.From)
+	}
+	b.acc.AddShaped(r.ids[*cp.book], e, w)
+	r.booked[cp.ref] = b.at
+	r.markEstimated(b, cp.ref, e.From, *cp.book)
+}
+
+// markEstimated flags the slots from the outage start to this poll estimated: there the
+// spread of a delta booked from from is a guess (spec 5.3). A delta in one slot is exact.
+func (r *deviceRun) markEstimated(b *booking, x ref, from time.Time,
+	series ...storage.SeriesKey,
+) {
+	g := b.gapFrom[x]
+	if g.IsZero() || Slot(from) == Slot(b.at) {
+		return
+	}
+	start := maxTime(g, from)
+	if !b.at.After(start) {
+		return
+	}
+	for _, s := range series {
+		b.acc.AddEnergy(r.ids[s], Energy{From: start, To: b.at, Flags: storage.FlagEstimated})
 	}
 }
 
@@ -56,6 +93,9 @@ func (r *deviceRun) counterState(cp counterPlan, base *float64, at, seen time.Ti
 	}
 	if g := r.groupOf(cp.ref); g != nil && !g.LastReset().IsZero() {
 		st.ResetAt = g.LastReset().UnixMilli()
+	}
+	if g := r.gapFrom[cp.ref]; !g.IsZero() {
+		st.GapFrom = g.UnixMilli()
 	}
 	return st
 }
@@ -173,7 +213,8 @@ func (r *deviceRun) bookNetting(b *booking) {
 		r.bookCancelled(b, np, min(b.deltas[np.imp].Wh, b.deltas[np.exp].Wh))
 	}
 	if ok {
-		r.bookNet(b, np, net, flagsOf(Delta{Gap: b.gap}))
+		from := r.bookNet(b, np, net)
+		r.markEstimated(b, np.imp, from, np.in, np.out)
 	}
 }
 
@@ -197,7 +238,9 @@ func nettable(b *booking, np *nettingPlan) bool {
 // bookCancelled stores import and export that cancelled out within one poll (method 1).
 func (r *deviceRun) bookCancelled(b *booking, np *nettingPlan, wh float64) {
 	if wh >= 0 {
-		b.acc.AddEnergy(r.ids[np.cancelled], Energy{Wh: wh, From: b.from[np.imp], To: b.at})
+		// Cancelling happens within this poll, not since the last change of the counter.
+		from := maxTime(b.from[np.imp], r.lastOK)
+		b.acc.AddEnergy(r.ids[np.cancelled], Energy{Wh: wh, From: from, To: b.at})
 	}
 }
 
@@ -211,18 +254,19 @@ func (r *deviceRun) netPower(b *booking, np *nettingPlan) (float64, bool) {
 	return r.netInt.Update(p.Num, b.at, false)
 }
 
-func (r *deviceRun) bookNet(b *booking, np *nettingPlan, net float64, flags int) {
-	from := b.from[np.imp]
-	if !b.gap {
-		from = maxTime(from, r.lastOK)
-	}
+// bookNet books the net of this poll since the last successful poll and returns that
+// start. Both counters were read there, so their deltas since their bases are the deltas
+// since that poll, also when a counter has not moved for hours.
+func (r *deviceRun) bookNet(b *booking, np *nettingPlan, net float64) time.Time {
+	from := maxTime(b.from[np.imp], r.lastOK)
 	key, other := np.in, np.out
 	if net < 0 {
 		key, other, net = np.out, np.in, -net
 	}
 	// The other direction gets 0 Wh, so both series have complete slots.
-	b.acc.AddEnergy(r.ids[key], Energy{Wh: net, From: from, To: b.at, Flags: flags})
-	b.acc.AddEnergy(r.ids[other], Energy{From: from, To: b.at, Flags: flags})
+	b.acc.AddEnergy(r.ids[key], Energy{Wh: net, From: from, To: b.at})
+	b.acc.AddEnergy(r.ids[other], Energy{From: from, To: b.at})
+	return from
 }
 
 // nettingMethod picks method 1 while both counters resolve ≤ 1 Wh, else method 2, and

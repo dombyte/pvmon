@@ -69,7 +69,7 @@ func (c *collectorStore) CounterStates(ctx context.Context, ids []int64,
 	in := placeholders(len(ids))
 	//nolint:gosec // only "?" placeholders are concatenated; all values are bound
 	q := `SELECT series_id, raw, at, remainder, coalesce(resolution, 0), reset,
-		seen FROM counter_state
+		seen, gap FROM counter_state
 		WHERE series_id IN (` + in + `)`
 	rows, err := c.s.db.QueryContext(ctx, q, int64Args(ids)...)
 	if err != nil {
@@ -79,7 +79,7 @@ func (c *collectorStore) CounterStates(ctx context.Context, ids []int64,
 	for rows.Next() {
 		var st CounterState
 		if err := rows.Scan(&st.SeriesID, &st.Raw, &st.At, &st.Remainder, &st.Resolution,
-			&st.ResetAt, &st.Seen); err != nil {
+			&st.ResetAt, &st.Seen, &st.GapFrom); err != nil {
 			return nil, fmt.Errorf("storage: scan counter state: %w", err)
 		}
 		out[st.SeriesID] = st
@@ -172,10 +172,13 @@ func upsertEnergy(ctx context.Context, tx *sql.Tx, e EnergyBucket) error {
 func saveCounters(ctx context.Context, tx *sql.Tx, states []CounterState) error {
 	for _, st := range states {
 		_, err := tx.ExecContext(ctx, `INSERT INTO counter_state(series_id, raw, at, remainder,
-			resolution, reset, seen) VALUES(?,?,?,?,?,?,?) ON CONFLICT(series_id) DO UPDATE SET
-			raw=excluded.raw, at=excluded.at, remainder=excluded.remainder,
-			resolution=excluded.resolution, reset=excluded.reset, seen=excluded.seen`,
-			st.SeriesID, st.Raw, st.At, st.Remainder, st.Resolution, st.ResetAt, st.Seen)
+			resolution, reset, seen, gap) VALUES(?,?,?,?,?,?,?,?)
+			ON CONFLICT(series_id) DO UPDATE SET raw=excluded.raw, at=excluded.at,
+			remainder=excluded.remainder, resolution=excluded.resolution, reset=excluded.reset,
+			seen=excluded.seen,
+			gap=excluded.gap`,
+			st.SeriesID, st.Raw, st.At, st.Remainder, st.Resolution, st.ResetAt, st.Seen,
+			st.GapFrom)
 		if err != nil {
 			return fmt.Errorf("storage: save counter %d: %w", st.SeriesID, err)
 		}

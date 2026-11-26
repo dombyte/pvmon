@@ -418,3 +418,22 @@ func TestReplayRestartsOverMidnight(t *testing.T) {
 	assert.InDelta(t, float64(reg(r.src.model.house))*100, r.dayWh(t, "backup", "energy_in", day),
 		100, "the new day books what its daily register shows")
 }
+
+// TestReplayFirstStartMidday: pvmon starts for the first time at noon. The daily registers
+// already hold the morning, but pvmon never saw how it was spread, so the morning stays
+// open instead of 48 slots booked as a measured 0.
+func TestReplayFirstStartMidday(t *testing.T) {
+	t.Parallel()
+	day := time.Date(2026, 11, 23, 0, 0, 0, 0, berlin)
+	r := newRig(t, "meter", day)
+	r.idle(day.Add(12 * time.Hour))
+	r.session(t, day.Add(13*time.Hour))
+
+	ctx := context.Background()
+	id, err := r.store.Read().SeriesID(ctx, storage.SeriesKey{Meter: "backup", Channel: "energy_in"})
+	require.NoError(t, err)
+	morning, err := r.store.Read().EnergyBuckets(ctx, id, collector.Slot(day),
+		collector.Slot(day.Add(12*time.Hour)))
+	require.NoError(t, err)
+	assert.Empty(t, morning, "the morning before the first poll stays open, not 0")
+}

@@ -66,11 +66,12 @@ type Lifetime struct {
 	cfg  CounterConfig
 	base *reading
 	held *reading
+	seen time.Time // last reading that was not held: the glitch guard counts from there
 }
 
 // NewLifetime returns a tracker; base restores the persisted raw value (nil = none).
 func NewLifetime(cfg CounterConfig, base *float64, at time.Time) *Lifetime {
-	l := &Lifetime{cfg: cfg}
+	l := &Lifetime{cfg: cfg, seen: at}
 	if base != nil {
 		l.base = &reading{v: *base, at: at}
 	}
@@ -88,18 +89,27 @@ func (l *Lifetime) Base() (*float64, time.Time) {
 
 // Update books the reading v at at.
 func (l *Lifetime) Update(v float64, at time.Time, gap bool) Delta {
+	d := l.update(v, at, gap)
+	if !d.Held {
+		l.seen = at
+	}
+	return d
+}
+
+func (l *Lifetime) update(v float64, at time.Time, gap bool) Delta {
 	if l.base == nil {
 		l.base = &reading{v, at}
 		return Delta{}
 	}
-	elapsed := at.Sub(l.base.at)
+	// Since the last read, not the last change: an idle counter keeps its base for days.
+	elapsed := at.Sub(l.seen)
 	d := v - l.base.v
 	event := ""
 	if d < 0 && l.cfg.Wrap > 0 && l.cfg.plausible(d+l.cfg.Wrap, elapsed, v) {
 		d += l.cfg.Wrap
 		event = EventOverflow
 	}
-	if d < 0 {
+	if d <= 0 {
 		return l.decrease(v, at, d)
 	}
 	if !l.cfg.plausible(d, elapsed, v) {
@@ -109,10 +119,13 @@ func (l *Lifetime) Update(v float64, at time.Time, gap bool) Delta {
 	return Delta{Wh: d, Gap: gap, Event: event}
 }
 
-// decrease handles a lower reading: jitter within the resolution is ignored, a clear
-// decrease means the meter was replaced (new base, no energy).
+// decrease handles an unchanged or lower reading. Jitter within the resolution keeps the
+// base, so the next step is spread from the last change, as for daily counters (spec 5.3),
+// and drops a held glitch. A clear decrease means the meter was replaced (new base, no
+// energy).
 func (l *Lifetime) decrease(v float64, at time.Time, d float64) Delta {
 	if -d <= l.cfg.EffectiveResolution(l.base.v) {
+		l.held = nil
 		return Delta{}
 	}
 	l.base, l.held = &reading{v, at}, nil

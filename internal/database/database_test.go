@@ -40,7 +40,7 @@ func TestMigrateFresh(t *testing.T) {
 	v, err = Version(ctx, db)
 	require.NoError(t, err)
 	assert.Equal(t, LatestVersion(), v)
-	assert.Equal(t, 4, v)
+	assert.Equal(t, 5, v)
 	require.NoError(t, Migrate(ctx, db, noBackup, t0), "idempotent")
 	var created string
 	require.NoError(t, db.QueryRowContext(ctx,

@@ -29,6 +29,8 @@ type counterPlan struct {
 	cfg   CounterConfig
 	input storage.SeriesKey  // series holding its counter_state
 	book  *storage.SeriesKey // energy series booked directly (nil: netted or unused)
+	power ref                // power of the same block that shapes its delta (sign != 0)
+	sign  float64            // power sign that flows into the counter: +1, -1, 0 none
 }
 
 // sharePlan splits the delta of a counter over channels by their power (derive: share).
@@ -188,8 +190,24 @@ func planCounter(pl *devicePlan, d *site.Device, cs counterSpec) {
 	} else {
 		key := storage.SeriesKey{Meter: m.ID, Channel: r.channel}
 		cp.input, cp.book = key, &key
+		cp.power, cp.sign = ref{r.block, "power"}, powerSign(d, m, r)
 	}
 	pl.counters = append(pl.counters, cp)
+}
+
+// powerSign is the sign of the block power that flows into counter r of meter m (spec 2),
+// or 0 when the block has no power channel or the role has no direction for r.
+func powerSign(d *site.Device, m *site.Meter, r ref) float64 {
+	if _, ok := d.Profile.Blocks[r.block].Channels["power"]; !ok {
+		return 0
+	}
+	switch pos, neg := site.IntegratedChannels(m.Role); r.channel {
+	case pos:
+		return 1
+	case neg:
+		return -1
+	}
+	return 0
 }
 
 func hiddenDef(k storage.SeriesKey) storage.SeriesDef {
