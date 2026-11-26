@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"os"
@@ -62,9 +63,11 @@ func TestLoadKey(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "secret.key")
 		c, err := LoadKey(path, true, rand.Reader)
 		require.NoError(t, err)
-		raw, err := os.ReadFile(path)
+		text, err := os.ReadFile(path)
 		require.NoError(t, err)
-		assert.Len(t, raw, 32)
+		key, err := base64.StdEncoding.DecodeString(strings.TrimSuffix(string(text), "\n"))
+		require.NoError(t, err)
+		assert.Len(t, key, 32)
 		fi, err := os.Stat(path)
 		require.NoError(t, err)
 		assert.Equal(t, os.FileMode(0o600), fi.Mode().Perm())
@@ -76,6 +79,22 @@ func TestLoadKey(t *testing.T) {
 		plain, err := again.Open(sealed)
 		require.NoError(t, err)
 		assert.Equal(t, "x", plain)
+	})
+	t.Run("raw key of older versions", func(t *testing.T) {
+		t.Parallel()
+		path := filepath.Join(t.TempDir(), "secret.key")
+		raw := bytes.Repeat([]byte{7}, 32)
+		require.NoError(t, os.WriteFile(path, raw, 0o600))
+		c, err := LoadKey(path, true, rand.Reader)
+		require.NoError(t, err)
+		sealed, err := testCipher(t).Seal("x")
+		require.NoError(t, err)
+		plain, err := c.Open(sealed)
+		require.NoError(t, err)
+		assert.Equal(t, "x", plain)
+		after, err := os.ReadFile(path)
+		require.NoError(t, err)
+		assert.Equal(t, raw, after)
 	})
 	t.Run("missing without create", func(t *testing.T) {
 		t.Parallel()
