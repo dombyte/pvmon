@@ -24,6 +24,36 @@ var t0 = time.Date(2026, 11, 19, 12, 0, 0, 0, time.UTC)
 
 func sec(n int) time.Time { return t0.Add(time.Duration(n) * time.Second) }
 
+func TestLifetimeKeepsBaseWhileUnchanged(t *testing.T) {
+	t.Parallel()
+	l := NewLifetime(CounterConfig{Resolution: 1, MaxPower: 10000}, nil, time.Time{})
+	l.Update(1000, sec(0), false)
+	assert.Equal(t, Delta{Held: true}, l.Update(900000, sec(5), false))
+	assert.Equal(t, Delta{}, l.Update(1000, sec(10), false), "the glitch is gone")
+	_, at := l.Base()
+	assert.Equal(t, sec(0), at, "an unchanged reading keeps the base time")
+	assert.Equal(t, Delta{Held: true}, l.Update(900000, sec(15), false),
+		"a new glitch is held again, not confirmed by the old one")
+	assert.Equal(t, Delta{Wh: 5}, l.Update(1005, sec(20), false))
+	_, at = l.Base()
+	assert.Equal(t, sec(20), at)
+}
+
+// TestGlitchGuardCountsFromLastRead: after an idle hour, a jump that fits an hour at max
+// power but not one poll is still held: the guard counts from the last read.
+func TestGlitchGuardCountsFromLastRead(t *testing.T) {
+	t.Parallel()
+	cfg := CounterConfig{Resolution: 1, MaxPower: 10000} // 13.9 Wh per 5 s, 10 kWh per h
+	l := NewLifetime(cfg, nil, time.Time{})
+	d := NewDaily(cfg, nil, time.Time{})
+	for at := 0; at <= 3600; at += 5 {
+		l.Update(1000, sec(at), false)
+		d.update(1000, sec(at), false, false, false)
+	}
+	assert.Equal(t, Delta{Held: true}, l.Update(2000, sec(3605), false))
+	assert.Equal(t, Delta{Held: true}, d.update(2000, sec(3605), false, false, false))
+}
+
 func TestLifetime(t *testing.T) {
 	t.Parallel()
 	cfg := CounterConfig{Resolution: 1, MaxPower: 10000} // 10 kW → 13.9 Wh per 5 s

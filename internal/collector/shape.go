@@ -25,8 +25,8 @@ func (s *Shape) Add(p float64, at time.Time) {
 	prev := s.last
 	s.last = at
 	wh, ok := s.integ.Update(max(0, s.sign*p), at, false)
-	if !ok {
-		return
+	if !ok || wh == 0 {
+		return // no entry for no flow: an idle counter keeps an empty shape
 	}
 	total := at.Sub(prev).Seconds()
 	eachSlot(prev, at, func(slot int64, part time.Duration) {

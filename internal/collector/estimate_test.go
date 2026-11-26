@@ -3,6 +3,7 @@ package collector_test
 import (
 	"context"
 	"math"
+	"sync"
 	"testing"
 	"time"
 
@@ -166,4 +167,123 @@ func TestRestartEstimates(t *testing.T) {
 			assert.InDelta(t, 750, tot.Wh, 100, "the counter covers the downtime")
 		})
 	}
+}
+
+// TestCoarseLifetimeStepFollowsPower: a lifetime counter in 100 Wh steps keeps its base
+// while it does not move, so its first step after idle hours is shaped by the power too.
+func TestCoarseLifetimeStepFollowsPower(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t, moreStart)
+	s := oneDevice(t, nettingProfile(100), site.DeviceSpec{Unit: 1}, "grid")
+	var wh float64
+	last := moreStart
+	src := &fnSource{clock: e.clock, f: func(now time.Time) (map[int]uint16, error) {
+		p := 0
+		if !now.Before(minutes(120)) {
+			p = 2000
+		}
+		wh += float64(p) * now.Sub(last).Hours()
+		last = now
+		return gridWords(uint32(math.Floor(wh/100)*100)+500_000, 300_000, p), nil
+	}}
+	e.runStopped(t, e.build(t, s, map[string]collector.Source{"d1": src}), minutes(135))
+	edge := 2000.0 / 2 * pollInterval.Hours()
+	idle := e.total(t, "grid", "energy_in", moreStart, minutes(120))
+	assert.Equal(t, 8, idle.Buckets, "the idle slots are booked")
+	assert.InDelta(t, 0, idle.Wh, edge+1e-6, "no energy in the idle hours")
+	assert.InDelta(t, 500, e.total(t, "grid", "energy_in", minutes(120), minutes(135)).Wh,
+		edge+1e-6, "15 min at 2 kW, in 100 Wh steps")
+}
+
+// recordStore records the number of energy rows of every flush.
+type recordStore struct {
+	storage.CollectorStore
+	mu   sync.Mutex
+	rows []int
+}
+
+func (s *recordStore) Flush(ctx context.Context, b storage.Batch) error {
+	s.mu.Lock()
+	s.rows = append(s.rows, len(b.Energy))
+	s.mu.Unlock()
+	return s.CollectorStore.Flush(ctx, b)
+}
+
+// TestIdleCounterWritesOnlyNewSlots: a counter that does not move books 0 Wh only since
+// its last booking, so every flush writes the same few rows, not a growing span.
+func TestIdleCounterWritesOnlyNewSlots(t *testing.T) {
+	t.Parallel()
+	for name, yaml := range map[string]string{
+		"daily":    coarseProfile,
+		"lifetime": nettingProfile(100),
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			e := newEnv(t, moreStart)
+			s := oneDevice(t, yaml, site.DeviceSpec{Unit: 1}, "grid")
+			if name == "daily" {
+				s = oneDevice(t, yaml, site.DeviceSpec{Unit: 1}, "backup", "grid")
+			}
+			src := &fnSource{clock: e.clock, f: func(time.Time) (map[int]uint16, error) {
+				w := gridWords(500_000, 300_000, 0)
+				w[101] = 7 // the daily counter stands at 0.7 kWh
+				return w, nil
+			}}
+			st := &recordStore{CollectorStore: e.store.Collector()}
+			c := e.buildWith(t, st, s, map[string]collector.Source{"d1": src})
+			e.runStopped(t, c, minutes(120))
+			st.mu.Lock()
+			defer st.mu.Unlock()
+			assert.Greater(t, len(st.rows), 10)
+			const maxRows = 6 // a few series, each the current slot and maybe the one before
+			for i, n := range st.rows {
+				assert.LessOrEqual(t, n, maxRows, "flush %d", i)
+			}
+		})
+	}
+}
+
+// TestNettingOutageUsesLastPoll: with an idle import counter, the net of an outage lands
+// in the outage, not spread back to the last change of the import counter.
+func TestNettingOutageUsesLastPoll(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t, moreStart)
+	s := oneDevice(t, nettingProfile(1), site.DeviceSpec{Unit: 1, Netting: "app"}, "grid")
+	src := &fnSource{clock: e.clock, f: func(now time.Time) (map[int]uint16, error) {
+		if now.After(minutes(60)) && !now.After(minutes(80)) {
+			return nil, context.DeadlineExceeded
+		}
+		exp := uint32(now.Sub(moreStart).Hours() * 1200) // 1.2 kW export, import idle
+		return gridWords(500_000, 300_000+exp, -1200), nil
+	}}
+	e.runStopped(t, e.build(t, s, map[string]collector.Source{"d1": src}), minutes(90))
+	before := e.total(t, "grid", "energy_out", moreStart, minutes(60))
+	assert.InDelta(t, 1200, before.Wh, 5, "the first hour keeps its own export")
+	assert.Zero(t, before.Flags&storage.FlagEstimated)
+	outage := e.total(t, "grid", "energy_out", minutes(60), minutes(90))
+	assert.InDelta(t, 600, outage.Wh, 5)
+	assert.NotZero(t, outage.Flags&storage.FlagEstimated)
+}
+
+// TestLifetimeRestartAfterIdleDays: a wallbox idle for two days charges while pvmon is
+// stopped. The energy lands in the downtime, not on the idle days before it.
+func TestLifetimeRestartAfterIdleDays(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t, moreStart)
+	s := oneDevice(t, nettingProfile(1), site.DeviceSpec{Unit: 1}, "grid")
+	imp := uint32(500_000)
+	src := &fnSource{clock: e.clock, f: func(time.Time) (map[int]uint16, error) {
+		return gridWords(imp, 300_000, 0), nil
+	}}
+	stop := moreStart.Add(48 * time.Hour)
+	e.runStopped(t, e.build(t, s, map[string]collector.Source{"d1": src}), stop)
+	e.clock.Advance(30 * time.Minute)
+	imp += 5000 // 5 kWh charged during the downtime
+	e.runStopped(t, e.build(t, s, map[string]collector.Source{"d1": src}),
+		stop.Add(45*time.Minute))
+	idle := e.total(t, "grid", "energy_in", moreStart, stop.Add(-15*time.Minute))
+	assert.InDelta(t, 0, idle.Wh, 1e-6, "the idle days stay at 0")
+	down := e.total(t, "grid", "energy_in", stop.Add(-15*time.Minute), stop.Add(45*time.Minute))
+	assert.InDelta(t, 5000, down.Wh, 1e-6)
+	assert.NotZero(t, down.Flags&storage.FlagEstimated, "the downtime is an outage")
 }

@@ -29,6 +29,7 @@ type deviceRun struct {
 	integ   map[ref]*Integrator
 	shapes  map[ref]*Shape    // power shape per counter with a power channel
 	gapFrom map[ref]time.Time // start of the first outage since the counter's base
+	booked  map[ref]time.Time // last poll that booked a delta of the counter
 	netInt  Integrator
 	netMode string
 	status  map[string]int64 // last stored code per status register
@@ -69,7 +70,7 @@ func newDeviceRun(in runInput) *deviceRun {
 	r := &deviceRun{
 		dev: d, plan: pl, src: src, ids: ids, life: map[ref]*Lifetime{},
 		groups: map[string]*groupRun{}, integ: map[ref]*Integrator{},
-		shapes: map[ref]*Shape{}, gapFrom: map[ref]time.Time{},
+		shapes: map[ref]*Shape{}, gapFrom: map[ref]time.Time{}, booked: map[ref]time.Time{},
 		status: map[string]int64{}, conn: -1, logged: map[string]bool{},
 	}
 	for _, cp := range pl.counters {
@@ -116,7 +117,10 @@ func (r *deviceRun) addCounter(cp counterPlan, st counterRestore,
 	loc *time.Location, rollover time.Duration,
 ) {
 	if cp.kind == profile.CounterLifetime {
-		r.life[cp.ref] = NewLifetime(cp.cfg, st.base, st.at)
+		// From the last read: the power that would place a step since the last change is
+		// not restored, and up to the last read the counter stood still. A daily counter
+		// keeps its last change: it limits where a reset is placed (spec 5.3).
+		r.life[cp.ref] = NewLifetime(cp.cfg, st.base, maxTime(st.at, st.seen))
 		return
 	}
 	gr, ok := r.groups[cp.group]

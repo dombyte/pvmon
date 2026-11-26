@@ -356,7 +356,7 @@ Pvmon keeps neither lifetime values nor daily values internally. It keeps **ener
 
 | Kind | Raw value | Δ per poll | Protection rules |
 | --- | --- | --- | --- |
-| `lifetime` | monotonic counter | current − previous | Pvmon detects a `u32` overflow. Pvmon holds a Δ that is larger than `max_power` × elapsed time + one counter step. A counter step is the resolution or one raw count of an integer register, whichever is larger. The held Δ is a glitch (for example swapped words). Pvmon checks it again on the next poll. Energy below one step at the previous reading is counted later. A clear decrease without a reset means that the meter was replaced. Pvmon then sets a new base and Δ = 0, logs it once, and the devices view asks the admin to confirm |
+| `lifetime` | monotonic counter | current − previous | Pvmon detects a `u32` overflow. Pvmon holds a Δ that is larger than `max_power` × the time since the last reading that was not held + one counter step. A counter step is the resolution or one raw count of an integer register, whichever is larger. The held Δ is a glitch (for example swapped words). Pvmon checks it again on the next poll. Energy below one step at the previous reading is counted later. A clear decrease without a reset means that the meter was replaced. Pvmon then sets a new base and Δ = 0, logs it once, and the devices view asks the admin to confirm |
 | `daily_reset` | daily counter that resets itself | current − previous; after a reset: current | See the rules below this table |
 | `none` | power only | power × time (trapezoid) | only between two consecutive successful polls; otherwise `gap` |
 
@@ -394,7 +394,7 @@ Pvmon writes the state in the same transaction as the bucket upsert. The raw bas
 
 **Outage.** An outage is a gap poll more than the device interval + 5 min after the last successful poll. After a restart, the last successful poll is `seen`. One failed poll and a quick restart are slow cycles, not outages.
 
-**Spreading a counter delta.** A counter delta covers the time since its base exactly. Pvmon spreads it over the slots of that time:
+**Spreading a counter delta.** A counter delta covers the time since its base exactly. The base is the last reading that changed the value: an unchanged reading keeps it, for `lifetime` and `daily_reset` alike. After a restart, a `lifetime` base starts at `seen`: the power since its last change is not restored, and up to `seen` the counter stood still. A `daily_reset` base keeps its last change, because it limits where a reset is placed. A delta of 0 Wh is booked only since the last booking of the counter, so pvmon writes only the new slots. Netting books the net of a poll since the last successful poll: both counters were read there. Pvmon spreads the delta over the slots of that time:
 
 - in proportion to the power of the same block in the direction of the counter (section 2), integrated per slot (trapezoid between polls, bridged over failed polls and outages). A coarse step (for example 0.1 kWh) then lands where the power flowed.
 - evenly when the block has no power, the power does not cover the whole time (after a restart) or shows no flow in it.

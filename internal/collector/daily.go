@@ -25,13 +25,14 @@ const (
 type Daily struct {
 	cfg  CounterConfig
 	base *reading
-	peak float64  // highest value held while waiting for the group
-	held *reading // implausible jump waiting for confirmation
+	peak float64   // highest value held while waiting for the group
+	held *reading  // implausible jump waiting for confirmation
+	seen time.Time // last reading that was not held: the glitch guard counts from there
 }
 
 // NewDaily returns a member; base restores the persisted raw value (nil = none).
 func NewDaily(cfg CounterConfig, base *float64, at time.Time) *Daily {
-	d := &Daily{cfg: cfg}
+	d := &Daily{cfg: cfg, seen: at}
 	if base != nil {
 		d.base = &reading{v: *base, at: at}
 	}
@@ -241,6 +242,14 @@ func (d *Daily) dropped(v float64) bool {
 }
 
 func (d *Daily) update(v float64, at time.Time, gap, reset, awaiting bool) Delta {
+	out := d.step(v, at, gap, reset, awaiting)
+	if !out.Held {
+		d.seen = at
+	}
+	return out
+}
+
+func (d *Daily) step(v float64, at time.Time, gap, reset, awaiting bool) Delta {
 	if d.base == nil {
 		d.base = &reading{v, at}
 		return Delta{}
@@ -254,7 +263,7 @@ func (d *Daily) update(v float64, at time.Time, gap, reset, awaiting bool) Delta
 		return Delta{Held: true} // drop not confirmed by the group
 	case diff <= 0:
 		return Delta{} // jitter; keep the base
-	case !d.cfg.plausible(diff, at.Sub(d.base.at), v):
+	case !d.cfg.plausible(diff, at.Sub(d.seen), v): // since the last read, not the last step
 		return d.hold(v, at)
 	case awaiting:
 		d.peak = max(d.peak, v)
