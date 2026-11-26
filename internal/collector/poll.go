@@ -42,7 +42,9 @@ func (c *Collector) process(r *deviceRun, raw profile.Raw, at time.Time) pollRes
 	from := map[ref]time.Time{}
 	for _, cp := range r.plan.counters {
 		_, baseAt := r.counterBase(cp.ref)
-		if gr, ok := r.groups[cp.group]; ok && cp.kind == profile.CounterDailyReset {
+		// Without a base (first poll ever) nothing is known about the day so far.
+		gr, ok := r.groups[cp.group]
+		if ok && cp.kind == profile.CounterDailyReset && !baseAt.IsZero() {
 			baseAt = maxTime(baseAt, gr.g.PeriodStart(at))
 		}
 		from[cp.ref] = baseAt
