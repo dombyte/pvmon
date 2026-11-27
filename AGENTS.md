@@ -38,6 +38,8 @@ go tool govulncheck ./...
 go tool mockery                             # regenerate mocks (.mockery.yaml)
 go test -race ./...                         # as in CI
 go test -race -tags integration ./...       # real devices, never in CI
+go test -tags simulation -run Simulation ./internal/collector    # in make check, not in CI
+go test -tags simulation -run ProfileSimulation ./internal/collector -profile=<id or file>
 make assets | build | all | docker          # dists; ./pvmon with ldflags; both; dev image
 make e2e | e2e-update                       # Playwright screenshots + axe in the CI image
 go run ./cmd [-config <path>]               # server (default ./config.yaml)
@@ -49,7 +51,7 @@ go run ./cmd version                        # build info (also -version)
 cd frontend && npm run typecheck && npm run lint && npm run knip && npm test
 ```
 
-- `make check` runs the same checks as CI. CI (`checks.yml`) also runs the tidy check, the mock drift check, the profile golden tests, the frontend checks, the i18n key check, the bundle budget and the Playwright e2e tests. Run `make check` before every merge.
+- `make check` runs the checks of CI and the collector simulation, which CI does not run. CI (`checks.yml`) also runs the tidy check, the mock drift check, the profile golden tests, the frontend checks, the i18n key check, the bundle budget and the Playwright e2e tests. Run `make check` before every merge.
 - `.golangci.yml` is the source of the lint and size rules (taken over from solis). Do not relax it without a deviation in section 12.3.
 - The toolchain is Go 1.27.4 (`go` directive in `go.mod`). Pin tool versions. Bump them deliberately. Use the same versions locally and in CI.
 - Go tools (mockery, deadcode, govulncheck) are `tool` directives in `go.mod`. Run them with `go tool <name>`. Bump them with `go get -tool <module>@vX.Y.Z`. A pinned `go run` checks sum.golang.org on every CI run.
@@ -290,13 +292,14 @@ The frontend and Swagger UI get `VITE_APP_VERSION` from the same source. The fro
 
 ## 9. Testing
 
-Unit tests use no network, no real clock and no sleeps. Deterministic fixtures pin every behaviour. Tests are table-driven with testify. Mocks come from mockery and are never edited by hand. `make check` runs the same checks as CI. It MUST pass before every merge.
+Unit tests use no network, no real clock and no sleeps. Deterministic fixtures pin every behaviour. Tests are table-driven with testify. Mocks come from mockery and are never edited by hand. `make check` runs the checks of CI and the simulation. It MUST pass before every merge.
 
 | Level | Scope | Tool |
 | --- | --- | --- |
 | Profile golden | recorded or documentation-based fixture → expected normalised channels for every built-in profile | Go |
 | Counter and netting | lifetime overflow, glitch hold, meter replacement, daily reset incl. reset group, integration across gaps, netting methods 1 and 2, resolution switch | Go, table-driven, fake clock |
-| Replay | sample sequences of whole days incl. midnight, DST (Europe/Berlin) and outages → expected buckets and day values per series; a virtual device with random power runs profiles through the core with device and pvmon faults (`TestSimulation`; every device template: `go test -run ProfileSimulation ./internal/collector -profile=<id or file>`; `PVMON_SIM=full`, `PVMON_SIM_SEED=<n>`) | Go |
+| Replay | sample sequences of whole days incl. midnight, DST (Europe/Berlin) and outages → expected buckets and day values per series | Go |
+| Simulation | a virtual device with random power runs through the core with device and pvmon faults: a stress profile in every scenario and every built-in profile (build tag `simulation`, in `make check`, not in CI; `-profile=<id or file>` verifies one device template; `PVMON_SIM=full`, `PVMON_SIM_SEED=<n>`) | Go |
 | Reference setups | R1–R7 configs + replay → site quantities, `/api/v1/site`, reports | Go |
 | Storage | write domains, cache invalidation on past writes, retention with carry, migrations, backup verification | Go + SQLite |
 | Transport | Modbus TCP and RTU (virtual serial pair + simulator, shared bus with two unit IDs), HTTP drivers against recorded responses | Go |
@@ -519,6 +522,9 @@ Gaps between this document and the repository:
 - **Old databases.** Databases written before the `daily_reset` gap fix (pvmon stopped over midnight) keep 0 Wh slots in the night that look measured. They also keep the energy of the night after the restart. Only `data exclude` (not built) can correct them.
 - **Old gap flags.** Databases written before counter gaps became `estimated` keep `gap` on those buckets. Their days stay incomplete until a `backfill` (not built) rewrites them.
 - **Old estimates.** Databases written before outages were told apart from slow cycles flag `estimated` after every failed poll and restart. Their coarse counter steps are spread evenly, and they keep 0 Wh slots before the first poll of a daily counter. A `backfill` (not built) can reshape them from `b15_gauge`.
+- **Reset in the middle of a slot.** The first slot of a reset booking is split by time only (`shortcut:` in `collector.Shape.Weights`). When the power changes around the reset, energy moves to the next slot (about 140 Wh in the simulation, `PVMON_SIM_SEED=5` and `14`, `clock late`). The total is exact.
+- **Restarts in short windows.** A pending daily reset and the held net of netting method 1 are not persisted. A restart before the reset is confirmed, after the new day passed the old value, loses the old value. A restart loses less than 2 Wh of held net.
+- **Fast climb after a reset.** A new day that reaches the old value in one reading counts as a glitch.
 - **Reports.** The data-quality section does not list device changes in the period, because no device history is stored.
 - **Netting `app`.** The daily drift check of coarse counters against the device totals (section 6) is not implemented. Device health `stale` (SPEC.md section 8.2) is not detected yet.
 - **docs/.** Swagger UI and OpenAPI do not exist yet. The dev `Dockerfile` gets its docs stage back with them.

@@ -368,7 +368,7 @@ Pvmon keeps neither lifetime values nor daily values internally. It keeps **ener
 - After a gap, pvmon places the reset at its expected instant. A restart that already saw the drop counts as a gap. The expected instant is the wall-clock time of the last confirmed reset. Before the first reset it is the `rollover`. It is never before the last reading before the drop. The rest of the old day stays open and never becomes 0.
 - Held polls book nothing. Their slots stay open until the release books them.
 - A member can show the reset but keep its value. Pvmon logs this member as stuck, and it continues normally.
-- A drop that vanishes earlier is a glitch.
+- A drop that vanishes earlier is a glitch. A drop vanishes when the value returns to its old level in one reading. After a reset the counter climbs from the low value in steps that `max_power` can explain: the drop stays, also when the climb reaches or passes the old value within the 15 min. Such a member books its value since the reset. A register that reads low and then climbs back in steps counts as a reset.
 - A false reset that lasts longer than 15 min ends in an implausible jump. Pvmon holds this jump. It becomes the new base without energy when the next reading confirms it.
 - Pvmon never books the energy of a daily register before the last confirmed reset (`counter_state.reset`). Before the first reset, the limit is the configured `rollover`.
 - Pvmon logs once when no reset occurred for 25 h.
@@ -396,8 +396,9 @@ Pvmon writes the state in the same transaction as the bucket upsert. The raw bas
 
 **Spreading a counter delta.** A counter delta covers the time since its base exactly. The base is the last reading that changed the value: an unchanged reading keeps it, for `lifetime` and `daily_reset` alike. After a restart, a `lifetime` base starts at `seen`: the power since its last change is not restored, and up to `seen` the counter stood still. A `daily_reset` base keeps its last change, because it limits where a reset is placed. A delta of 0 Wh is booked only since the last booking of the counter, so pvmon writes only the new slots. Netting books the net of a poll since the last successful poll: both counters were read there. Pvmon spreads the delta over the slots of that time:
 
-- in proportion to the power of the same block in the direction of the counter (section 2), integrated per slot (trapezoid between polls, bridged over failed polls and outages). A coarse step (for example 0.1 kWh) then lands where the power flowed.
-- evenly when the block has no power, the power does not cover the whole time (after a restart) or shows no flow in it.
+- in proportion to the power of the same block in the direction of the counter (section 2), integrated per slot (trapezoid between polls, bridged over failed polls). A coarse step (for example 0.1 kWh) then lands where the power flowed. An outage is not bridged. The part of the delta that the measured power does not explain is spread evenly over the time of the outages. When the delta is smaller than the measured energy, the measured slots are scaled down.
+- evenly when the block has no power, the power does not cover the whole time (after a restart) or shows no flow in it and in no outage. Without power over the whole time, the even spread starts no earlier than the last poll that read the counter before a restart or an outage: until then the counter stood still. A reset booking starts at the reset.
+- A shared counter (section 4.2) is spread the same way as a counter without power.
 
 Every slot of the time gets a row, also with 0 Wh.
 
@@ -448,7 +449,7 @@ The config always wins. A model variant that behaves differently gets its own pr
 
 **Input selection with `app` (automatic, best method first):**
 
-1. **Fine counters.** These are total import and export counters, or counters for each phase with the profile `sum`. Use them while their effective resolution is ≤ 1 Wh. Net = Δimport − Δexport for each poll.
+1. **Fine counters.** These are total import and export counters, or counters for each phase with the profile `sum`. Use them while their effective resolution is ≤ 1 Wh. Net = Δimport − Δexport for each poll. The two counters do not step in the same polls. Near 0 W, their rounding would book energy in both directions. Pvmon therefore holds a net below 2 Wh and adds it to the net of the next polls. It books the sum when it reaches 2 Wh in either direction. A gap poll books everything. A restart loses the held net (less than 2 Wh).
 2. **Signed total grid power.** This is the signed sum of the meter, or the sum of the powers of each phase. Net = power × time for each poll. It uses the same integrator as `none`.
 
 When the counters become too coarse, the device switches to method 2 and logs it once. Solis 0.1 kWh dailies and 0.01 kWh meter totals are coarse counters. They rarely move between 5 s polls. They step at *different* polls. Method 1 would then book both sides.
@@ -1284,13 +1285,14 @@ Data correction commands print a before/after summary. They need `--yes` to writ
 
 ## 15. Testing and quality gates
 
-Unit tests use no network, no real clock and no sleeps. Deterministic fixtures pin every behaviour. Tests are table-driven with testify. Mocks come from mockery and are never edited by hand. `make check` runs the same checks as CI. It MUST pass before every merge.
+Unit tests use no network, no real clock and no sleeps. Deterministic fixtures pin every behaviour. Tests are table-driven with testify. Mocks come from mockery and are never edited by hand. `make check` runs the checks of CI and the simulation. It MUST pass before every merge.
 
 | Level | Scope | Tool |
 | --- | --- | --- |
 | Profile golden | recorded or documentation-based fixture → expected normalised channels for every built-in profile | Go |
 | Counter and netting | lifetime overflow, glitch hold, meter replacement, daily reset incl. reset group, integration across gaps, netting methods 1 and 2, resolution switch | Go, table-driven, fake clock |
 | Replay | sample sequences of whole days incl. midnight, DST (Europe/Berlin) and outages → expected buckets and day values per series | Go |
+| Simulation | a virtual device with random power runs profiles through the collector with device and pvmon faults; local only, not in CI | Go, fake clock |
 | Reference setups | R1–R7 configs + replay → site quantities, `/api/v1/site`, reports | Go |
 | Storage | write domains, cache invalidation on past writes, retention with carry, migrations, backup verification | Go + SQLite |
 | Transport | Modbus TCP and RTU (virtual serial pair + simulator, shared bus with two unit IDs), HTTP drivers against recorded responses | Go |

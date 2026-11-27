@@ -120,6 +120,12 @@ echo "Building..."
 go build "${PKGS[@]}"
 print_result $? "build"
 
+# 5b. Simulation of the collector with random device data and faults. Local only: CI does
+# not run it. Without -race, which would make it more than ten times slower.
+echo "Running the simulation..."
+go test -tags simulation -run Simulation -count=1 ./internal/collector
+print_result $? "simulation"
+
 # 6. Tests (race detector as in CI) with a per-package coverage gate. Packages without
 # test files or without statements are not gated; mocks are generated code; `cmd` is
 # not gated (main() calls os.Exit and cannot be tested; its logic lives in run() and app).

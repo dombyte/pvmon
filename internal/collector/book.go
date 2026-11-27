@@ -2,6 +2,7 @@ package collector
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/dombyte/pvmon/internal/profile"
@@ -46,18 +47,36 @@ func (r *deviceRun) bookCounters(b *booking) {
 
 // bookDelta books a counter delta, shaped by the meter's power where it covers the span.
 func (r *deviceRun) bookDelta(b *booking, cp counterPlan, d Delta, base *float64) {
-	e := Energy{Wh: d.Wh, From: b.from[cp.ref], To: b.at, Flags: flagsOf(d), Counter: base}
+	from := b.from[cp.ref]
+	if s, ok := r.shapes[cp.ref]; !ok || !s.covers(from) {
+		from = r.spreadFrom(b, cp.ref, d)
+	}
+	e := Energy{Wh: d.Wh, From: from, To: b.at, Flags: flagsOf(d), Counter: base}
 	if d.Wh == 0 {
 		// The slots up to the last booking have their rows; write only what changed.
 		e.From = maxTime(e.From, r.booked[cp.ref])
 	}
 	var w map[int64]float64
 	if s, ok := r.shapes[cp.ref]; ok {
-		w = s.Weights(e.From)
+		w = s.Weights(e.From, e.Wh)
 	}
 	b.acc.AddShaped(r.ids[*cp.book], e, w)
 	r.booked[cp.ref] = b.at
 	r.markEstimated(b, cp.ref, e.From, *cp.book)
+}
+
+// spreadFrom is where an even spread of delta d starts. Without power, nothing tells when
+// the energy of an outage or an earlier run flowed since the base, but the counter stood
+// still while it was read. A reset is placed by its group instead.
+func (r *deviceRun) spreadFrom(b *booking, x ref, d Delta) time.Time {
+	from := b.from[x]
+	if d.ResetSeen {
+		return from
+	}
+	if !b.gapFrom[x].IsZero() {
+		from = maxTime(from, b.gapFrom[x])
+	}
+	return maxTime(from, r.read[x])
 }
 
 // markEstimated flags the slots from the outage start to this poll estimated: there the
@@ -118,7 +137,7 @@ func (r *deviceRun) bookShares(b *booking) {
 				w = weights[i] / total
 			}
 			b.acc.AddEnergy(r.ids[sp.series], Energy{
-				Wh: d.Wh * w, From: b.from[of], To: b.at,
+				Wh: d.Wh * w, From: r.spreadFrom(b, of, d), To: b.at,
 				Flags: flagsOf(d) | storage.FlagEstimated,
 			})
 		}
@@ -196,6 +215,9 @@ func (r *deviceRun) markLost(b *booking, ip integratePlan) {
 const (
 	nettingCounters = "counters"
 	nettingPower    = "power"
+	// nettingDeadband is the smallest net that method 1 books. Its counters step by up to
+	// 1 Wh, not in the same polls, so a difference below two steps can be their rounding.
+	nettingDeadband = 2.0 // Wh
 )
 
 // bookNetting nets the grid meter per poll and books import or export.
@@ -218,14 +240,32 @@ func (r *deviceRun) bookNetting(b *booking) {
 	}
 }
 
-// netAmount is import − export of this poll: from the counters (method 1, and every gap
-// poll) or from the integrated signed power (method 2).
+// netAmount is the net to book at this poll: import − export from the counters (method 1,
+// and every gap poll) or from the integrated signed power (method 2), plus what method 1
+// held back before.
 func (r *deviceRun) netAmount(b *booking, np *nettingPlan, method string) (float64, bool) {
 	if method == nettingPower && !b.gap {
-		return r.netPower(b, np)
+		net, ok := r.netPower(b, np)
+		if !ok {
+			return 0, false
+		}
+		return r.takeNet(net), true
 	}
 	r.netInt.Reset()
-	return b.deltas[np.imp].Wh - b.deltas[np.exp].Wh, true
+	net := r.takeNet(b.deltas[np.imp].Wh - b.deltas[np.exp].Wh)
+	if method == nettingCounters && !b.gap && math.Abs(net) < nettingDeadband {
+		// shortcut: held in memory only, so a restart loses less than the deadband;
+		// persist it in counter_state if that ever matters.
+		r.netHeld, net = net, 0
+	}
+	return net, true
+}
+
+// takeNet adds the held net to net.
+func (r *deviceRun) takeNet(net float64) float64 {
+	net += r.netHeld
+	r.netHeld = 0
+	return net
 }
 
 // nettable reports whether both counters were read and a base time exists.

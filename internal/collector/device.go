@@ -30,7 +30,9 @@ type deviceRun struct {
 	shapes  map[ref]*Shape    // power shape per counter with a power channel
 	gapFrom map[ref]time.Time // start of the first outage since the counter's base
 	booked  map[ref]time.Time // last poll that booked a delta of the counter
+	read    map[ref]time.Time // last poll of the run before that read the counter
 	netInt  Integrator
+	netHeld float64 // Wh of method 1 net below nettingDeadband, not booked yet
 	netMode string
 	status  map[string]int64 // last stored code per status register
 	conn    int64            // last stored connection code, -1 none
@@ -72,6 +74,7 @@ func newDeviceRun(in runInput) *deviceRun {
 		groups: map[string]*groupRun{}, integ: map[ref]*Integrator{},
 		shapes: map[ref]*Shape{}, gapFrom: map[ref]time.Time{}, booked: map[ref]time.Time{},
 		status: map[string]int64{}, conn: -1, logged: map[string]bool{},
+		read: map[ref]time.Time{},
 	}
 	for _, cp := range pl.counters {
 		r.restoreCounter(cp, states[ids[cp.input]], loc, rollover)
@@ -92,6 +95,7 @@ func (r *deviceRun) restoreCounter(cp counterPlan, st storage.CounterState,
 		rs.base, rs.at, rs.seen = st.Raw, time.UnixMilli(st.At), time.UnixMilli(st.Seen)
 		// The last read, not the last change: a coarse counter may not move for hours.
 		r.lastOK = maxTime(r.lastOK, maxTime(rs.at, rs.seen))
+		r.read[cp.ref] = rs.seen
 	}
 	if st.ResetAt > 0 {
 		rs.resetAt = time.UnixMilli(st.ResetAt)
@@ -178,6 +182,9 @@ func (r *deviceRun) addPower(vals decoded, at time.Time) {
 	for _, cp := range r.plan.counters {
 		s, ok := r.shapes[cp.ref]
 		if p, valid := vals.get(cp.power); ok && valid {
+			if r.isOutage(at) {
+				s.Lose(at)
+			}
 			s.Add(p.Num, at)
 		}
 	}
