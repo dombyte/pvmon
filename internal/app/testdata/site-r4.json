@@ -155,7 +155,7 @@
     {
       "id": "goe",
       "profile": "goe/charger-v2",
-      "verified": false,
+      "verified": true,
       "state": "unconfigured"
     },
     {
@@ -173,7 +173,7 @@
     {
       "id": "warp",
       "profile": "tinkerforge/warp3",
-      "verified": false,
+      "verified": true,
       "state": "unconfigured"
     },
     {

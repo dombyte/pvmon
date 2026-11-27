@@ -319,8 +319,8 @@ The profiles and their fixtures are in `profiles/`.
 | `eastron/sdm630` | Modbus RTU/TCP, FC 04, float32, max 80 registers for each request, ranges 0x0000–0x004F and 0x015A–0x0165 | total (grid or consumer), l1–l3 (phase) | lifetime kWh (import 0x0048, export 0x004A) | `app` | Eastron SDM630 Modbus protocol V1.5 | no |
 | `shelly/pro-3em` | HTTP Gen2 RPC `EM.GetStatus` + `EMData.GetStatus`, digest auth | total (grid or consumer), a–c (phase) | lifetime Wh (`total_act`, `total_act_ret`) | `meter` | Shelly Gen2 API docs | yes (the device nets the phases) |
 | `shelly/3em` | HTTP Gen1 `/status`, basic auth | total (grid or consumer), l1–l3 | lifetime Wh, sum of the phases | `meter` (placeholder) | Gen1 docs and community sources | no |
-| `goe/charger-v2` | HTTP API v2 `/api/status?filter=…` | charger (consumer / wallbox) | lifetime Wh (`eto`); power `nrg[11]` | – | go-e API v2 key list, evcc client | dump pending |
-| `tinkerforge/warp3` | HTTP API (`/meters/0/values` by value ID, `/evse/state`), digest auth | charger (consumer / wallbox) | lifetime kWh (ID 209); power ID 74 | – | WARP docs, firmware `meter_value_id.csv` | dump pending |
+| `goe/charger-v2` | HTTP API v2 `/api/status?filter=…` | charger (consumer / wallbox) | lifetime Wh (`eto`); power `nrg[11]` | – | go-e API v2 key list, evcc client | yes; fixture pending |
+| `tinkerforge/warp3` | HTTP API (`/meters/0/values` by value ID, `/evse/state`), digest auth | charger (consumer / wallbox) | lifetime kWh (ID 209); power ID 74 | – | WARP docs, firmware `meter_value_id.csv` | yes; fixture pending |
 | `opendtu/total` | HTTP `/api/livedata/status`, basic auth | pv (power + lifetime kWh `total.YieldTotal`), pv_power (power only, energy integrated ≈) | lifetime kWh | – | OpenDTU source (`WebApi_ws_live.cpp`), evcc template | no |
 
 Open points for each device are signs, units and conflicts between sources. The profile file and its fixture document them. Dumps from real devices resolve them.

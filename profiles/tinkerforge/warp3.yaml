@@ -5,7 +5,7 @@ version: 1
 vendor: Tinkerforge
 models: ["WARP3 Charger Pro"]
 transport: http
-verified: false           # from the WARP docs; no device dump yet
+verified: true            # real dump decodes plausibly (not charging); ID 74 unit unverified, fixture pending
 http:
   auth: digest            # only when credentials are set on the charger
   endpoints:
