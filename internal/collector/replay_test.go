@@ -46,9 +46,19 @@ type solisModel struct {
 	day                       int
 	pv, bi, bo, gi, ge, house float64 // Wh today
 	giTotal, geTotal          float64 // Wh lifetime
+	// fixed, if set, replaces the daily curve with constant pv, battery and load power.
+	fixed *[3]float64
 }
 
 func (m *solisModel) powers(t time.Time) (pv, bat, grid, load float64) {
+	if f := m.fixed; f != nil {
+		return f[0], f[1], f[2] - f[0] - f[1], f[2]
+	}
+	return dayCurve(t)
+}
+
+// dayCurve is the simulated day of the model.
+func dayCurve(t time.Time) (pv, bat, grid, load float64) {
 	l := t.In(berlin)
 	h := float64(l.Hour()) + float64(l.Minute())/60 + float64(l.Second())/3600
 	if h > 7 && h < 17 {
@@ -68,7 +78,7 @@ func (m *solisModel) powers(t time.Time) (pv, bat, grid, load float64) {
 // advance integrates the energies over dt ending at t, resetting at local midnight.
 func (m *solisModel) advance(t time.Time, dt time.Duration) {
 	if d := t.In(berlin).YearDay(); d != m.day {
-		*m = solisModel{day: d, giTotal: m.giTotal, geTotal: m.geTotal}
+		*m = solisModel{day: d, giTotal: m.giTotal, geTotal: m.geTotal, fixed: m.fixed}
 	}
 	pv, bat, grid, load := m.powers(t)
 	hrs := dt.Hours()
@@ -330,6 +340,47 @@ func TestReplayNettingApp(t *testing.T) {
 
 // TestReplayResetSurvivesRestart checks that the learned reset instant is persisted with the
 // counter states and restored by a restarted collector (its next flush keeps it).
+// TestReplayResetGroupUnderLoad: all daily counters of the Solis reset group carry power
+// across midnight. Each old day ends at the last value of its register: nothing of the new
+// day is booked before the reset.
+func TestReplayResetGroupUnderLoad(t *testing.T) {
+	t.Parallel()
+	day := time.Date(2026, 11, 19, 0, 0, 0, 0, berlin)
+	for name, power := range map[string][3]float64{ // pv, battery (+ discharges), load
+		"discharging": {2000, 900, 700},
+		"charging":    {4000, -2500, 450},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			r := newRig(t, "meter", day.Add(-3*time.Hour))
+			r.src.model.fixed = &power
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			c := r.collector(t)
+			require.NoError(t, c.Start(ctx))
+			r.runUntil(day.Add(-pollInterval))
+			m := *r.src.model
+			r.runUntil(day.Add(30 * time.Minute))
+			require.NoError(t, c.Stop())
+			for _, x := range []struct {
+				meter, channel   string
+				register, powerW float64
+			}{
+				{"pv", "energy_out", m.pv, power[0]},
+				{"battery", "energy_in", m.bi, max(0, -power[1])},
+				{"battery", "energy_out", m.bo, max(0, power[1])},
+				{"backup", "energy_in", m.house, power[2]},
+			} {
+				// The test starts 3 h before midnight, so the slots before it hold
+				// the whole register.
+				assert.InDelta(t, float64(reg(x.register))*100,
+					r.dayWh(t, x.meter, x.channel, day.AddDate(0, 0, -1)),
+					x.powerW*pollInterval.Hours()+1, "%s/%s", x.meter, x.channel)
+			}
+		})
+	}
+}
+
 func TestReplayResetSurvivesRestart(t *testing.T) {
 	t.Parallel()
 	day := time.Date(2026, 11, 19, 0, 0, 0, 0, berlin)
