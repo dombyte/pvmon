@@ -373,7 +373,7 @@ koanf and timberjack add these indirect modules:
 | Module | Version | Released | Why |
 | --- | --- | --- | --- |
 | `github.com/stretchr/testify` | v1.12.1 | 2026-08-17 | `require` / `assert` and `mock`; chosen over plain `testing` to avoid hand-written assertion and fake code |
-| `github.com/vektra/mockery/v3` | v3.9.1 | 2026-11-09 | generates a mock for every interface (`go tool mockery`); CI fails on mock drift |
+| `github.com/vektra/mockery/v3` | v3.9.2 | 2026-11-23 | generates a mock for every interface (`go tool mockery`); CI fails on mock drift |
 
 Indirect only:
 
@@ -395,7 +395,7 @@ Indirect only:
 
 | Tool | Module | Version |
 | --- | --- | --- |
-| mockery | `github.com/vektra/mockery/v3` | v3.9.1 |
+| mockery | `github.com/vektra/mockery/v3` | v3.9.2 |
 | govulncheck | `golang.org/x/vuln` | v1.10.0 |
 | deadcode | `golang.org/x/tools` | v0.53.0 |
 

@@ -57,20 +57,20 @@ func (_mock *MockFirstSlotSource) FirstSlot(ctx context.Context) (int64, bool, e
 	var r0 int64
 	var r1 bool
 	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) (int64, bool, error)); ok {
+	if returnFunc, ok1 := ret.Get(0).(func(context.Context) (int64, bool, error)); ok1 {
 		return returnFunc(ctx)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) int64); ok {
+	if returnFunc, ok1 := ret.Get(0).(func(context.Context) int64); ok1 {
 		r0 = returnFunc(ctx)
 	} else {
 		r0 = ret.Get(0).(int64)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context) bool); ok {
+	if returnFunc, ok1 := ret.Get(1).(func(context.Context) bool); ok1 {
 		r1 = returnFunc(ctx)
 	} else {
 		r1 = ret.Get(1).(bool)
 	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context) error); ok {
+	if returnFunc, ok1 := ret.Get(2).(func(context.Context) error); ok1 {
 		r2 = returnFunc(ctx)
 	} else {
 		r2 = ret.Error(2)
