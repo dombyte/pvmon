@@ -28,7 +28,8 @@ var dayWh = map[string]float64{
 
 // slotWh is the energy of every bucket (96 per day).
 var slotWh = map[string]float64{
-	"site/consumption": 100, "site/grid_in": 25, "site/battery_in": 10, "wb-2/energy_in": 20,
+	"site/consumption": 100, "site/grid_in": 25, "site/battery_in": 10, "site/battery_out": 10,
+	"wb-2/energy_in": 20,
 }
 
 func fakeEnergy(_ context.Context, names []string, level derive.Level, from, to time.Time,

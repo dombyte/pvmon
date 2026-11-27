@@ -110,6 +110,14 @@ const lpRows = computed(() => {
         kwh(c.solar_est_kwh),
         pct(c.solar_pct),
       ])
+  if (lp.house_kwh != null)
+    rows.push([
+      t('roles.house'),
+      '–',
+      kwh(lp.house_kwh),
+      kwh(lp.house_solar_est_kwh),
+      pct(lp.house_solar_pct),
+    ])
   return rows
 })
 const patterns = computed(() => {

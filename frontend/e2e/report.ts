@@ -113,6 +113,9 @@ export function reportOf(url: URL) {
     ],
     batteries: [],
     loadpoints: {
+      house_kwh: 154,
+      house_solar_est_kwh: 67,
+      house_solar_pct: 43.51,
       meters: [
         meter('wb-garage', 'Garage', {
           category: 'wallbox',

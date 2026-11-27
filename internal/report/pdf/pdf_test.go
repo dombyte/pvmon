@@ -42,7 +42,7 @@ func sample(from, to string) report.Report {
 				At: d.Add(time.Duration(s) * 15 * time.Minute),
 				Values: map[string]float64{
 					report.KeyConsumption: 100 + float64(s%40)*5,
-					report.KeyImport:      30, report.KeyCharge: 10, "lp:wb": 20, "lp:hp": 15,
+					report.KeyImport:      30, report.KeyCharge: 10, report.KeyDischarge: 20, "lp:wb": 20, "lp:hp": 15,
 				},
 			})
 		}
@@ -80,17 +80,38 @@ func TestWrite(t *testing.T) {
 			Lang: tc.lang,
 		}))
 		assert.True(t, bytes.HasPrefix(buf.Bytes(), []byte("%PDF-")))
-		if dir := os.Getenv("PVMON_PDF_OUT"); dir != "" {
-			name := tc.lang + "-" + tc.from + ".pdf"
-			require.NoError(t, os.WriteFile(filepath.Join(dir, name), buf.Bytes(), 0o600))
-		}
+		writeSample(t, tc.lang+"-"+tc.from+".pdf", buf.Bytes())
 	}
+	one := sample("2026-10-01", "2026-10-01")
+	one.Comparison.Matched, one.Comparison.MatchedDays = true, 0
+	var buf bytes.Buffer
+	require.NoError(t, Write(&buf, one, Meta{Site: "Home", Generated: gen, Lang: "en"}))
+	writeSample(t, "en-one-day.pdf", buf.Bytes())
 	grid := report.Build(report.Input{Range: report.Range{
 		From: day("2026-06-01"),
 		To:   day("2026-06-01"),
 	}})
 	require.NoError(t, Write(&bytes.Buffer{}, grid, Meta{Generated: gen}))
 	require.Error(t, Write(failing{}, grid, Meta{Generated: gen}))
+}
+
+// writeSample keeps a rendered PDF for review when PVMON_PDF_OUT names a directory.
+func writeSample(t *testing.T, name string, b []byte) {
+	t.Helper()
+	if dir := os.Getenv("PVMON_PDF_OUT"); dir != "" {
+		require.NoError(t, os.WriteFile(filepath.Join(dir, name), b, 0o600))
+	}
+}
+
+func TestHeaderLines(t *testing.T) {
+	t.Parallel()
+	d, err := newDoc(Meta{})
+	require.NoError(t, err)
+	d.newPage()
+	d.font(fontSemiBold, sizeSmall, hex(colorInk))
+	assert.Equal(t, []string{"Charged"}, d.headerLines("Charged", 60))
+	assert.Equal(t, []string{"Self-", "sufficiency"}, d.headerLines("Self-sufficiency", 60))
+	assert.Equal(t, []string{"Grid", "import"}, d.headerLines("Grid import", 40))
 }
 
 type failing struct{}
@@ -149,7 +170,7 @@ func checkDynamicKeys(t *testing.T, all map[string][2]string) {
 	dynamic := []string{
 		"chart.energy.day", "chart.energy.month", "chart.energy.year",
 		"table.day", "table.month", "table.year", "cat.wallbox", "cat.heatpump", "cat.heater",
-		"cat.other",
+		"cat.other", "column.pv",
 	}
 	for _, f := range report.Build(report.Input{Layout: report.Layout{
 		PV: []report.Meter{{}}, Batteries: []report.Meter{{}},

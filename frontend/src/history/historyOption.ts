@@ -4,7 +4,7 @@ import type { EChartsCoreOption } from 'echarts/core'
 import type { Tokens } from '@/charts/tokens'
 import { escapeHTML, tooltipBody, tooltipRow } from '@/charts/tooltip'
 import { formatEnergy, formatNumber, type Lang } from '@/format'
-import { tokenOf, type HistoryKey, type PeriodPoint } from './points'
+import { isLoadPart, tokenOf, type HistoryKey, type PeriodPoint } from './points'
 
 export interface HistoryText {
   lang: Lang
@@ -37,6 +37,24 @@ export function tooltipHTML(p: PeriodPoint, keys: HistoryKey[], t: Tokens, x: Hi
 }
 
 /**
+ * The bar value of a key. House and loadpoints are stacked and replace the consumption
+ * bar; a period without house value shows the consumption alone.
+ */
+function barValue(p: PeriodPoint, k: HistoryKey, keys: HistoryKey[]): number | null {
+  const split = p.values.house !== null
+  if (k === 'consumption' && split && keys.some(isLoadPart)) return null
+  if (isLoadPart(k) && !split) return null
+  return p.values[k]
+}
+
+const isStacked = (k: HistoryKey) => k === 'consumption' || isLoadPart(k)
+
+/** The key whose segment ends the stack of a period, so only that one has a round top. */
+function stackTop(p: PeriodPoint, keys: HistoryKey[]): HistoryKey | undefined {
+  return keys.filter((k) => isStacked(k) && (barValue(p, k, keys) ?? 0) > 0).pop()
+}
+
+/**
  * Bars per visible key in kWh. A period without data has no bar (a gap, never a 0 bar);
  * bars outside the selected period are dimmed while one is selected.
  */
@@ -53,7 +71,12 @@ export function historyOption(
     grid: { left: gridPad, right: gridPad, top: gridPad, bottom: gridPad, outerBoundsMode: 'same' },
     // An incomplete period carries the same "*" as the energy table.
     xAxis: { type: 'category', data: points.map((p) => x.axis(p) + (p.missing.length ? '*' : '')) },
-    yAxis: { type: 'value', min: 0, axisLabel: { formatter: (v: number) => formatNumber(v, x.lang, 1, 0) } },
+    yAxis: {
+      type: 'value',
+      // A negative house value (meters disagree) stays visible below zero.
+      min: (v: { min: number }) => Math.min(0, Math.floor(v.min)),
+      axisLabel: { formatter: (v: number) => formatNumber(v, x.lang, 1, 0) },
+    },
     tooltip: {
       trigger: 'axis',
       triggerOn: 'mousemove|click',
@@ -67,13 +90,16 @@ export function historyOption(
     series: keys.map((k) => ({
       type: 'bar',
       name: x.names[k],
+      stack: isStacked(k) ? 'load' : undefined,
       barMaxWidth,
-      itemStyle: { color: t[tokenOf[k]], borderRadius: [barRadius, barRadius, 0, 0] },
+      itemStyle: { color: t[tokenOf[k]] },
       data: points.map((p, i) => {
-        const v = p.values[k]
+        const v = barValue(p, k, keys)
         if (v === null) return null
         const opacity = selected === null || selected === i ? 1 : dimmed
-        return { value: v / whPerKwh, itemStyle: { opacity } }
+        const round = !isStacked(k) || stackTop(p, keys) === k
+        const borderRadius = round ? [barRadius, barRadius, 0, 0] : 0
+        return { value: v / whPerKwh, itemStyle: { opacity, borderRadius } }
       }),
     })),
   }

@@ -260,6 +260,9 @@ export interface ReportResponse {
   pv_sources: ReportMeter[]
   batteries: ReportMeter[]
   loadpoints: {
+    house_kwh: number | null
+    house_solar_est_kwh: number | null
+    house_solar_pct: number | null
     meters: ReportMeter[]
     categories: ReportMeter[] | null
   } | null

@@ -7,9 +7,19 @@ import (
 	"github.com/dombyte/pvmon/internal/report"
 )
 
+const (
+	minDays      = 2 // patterns compare days
+	patternRows  = 7
+	qualityNotes = 2 // lines above the quality table
+)
+
 func patternsSection(d *doc, r report.Report) {
 	t := d.t
 	p := r.Patterns
+	if r.Summary.CompleteDays < minDays {
+		return // the extremes and means of one day are that day
+	}
+	d.keep(patternRows)
 	d.heading(t.s("patterns"))
 	var rows [][2]string
 	add := func(key string, v *report.DayValue) {
@@ -37,7 +47,13 @@ func comparisonSection(d *doc, r report.Report) {
 	if c == nil {
 		return
 	}
+	d.keep(len(r.Figures) + 1)
 	d.heading(t.f("compare.title", t.rangeLabel(c.Range)))
+	if comparedWith(c) == nil {
+		d.paragraph(t.s("compare.none"), sizeBody, colorBody)
+		d.y += sectionGap
+		return
+	}
 	rows := make([][]string, len(r.Figures))
 	for i, f := range r.Figures {
 		text, _ := changeText(t, f)
@@ -62,6 +78,7 @@ func comparisonSection(d *doc, r report.Report) {
 func qualitySection(d *doc, r report.Report) {
 	t := d.t
 	s := r.Summary
+	d.keep(len(r.Quality) + qualityNotes)
 	d.heading(t.s("quality"))
 	d.paragraph(t.f("quality.days", s.CompleteDays, s.Days), sizeBody, colorBody)
 	if len(r.MissingDays) > 0 {

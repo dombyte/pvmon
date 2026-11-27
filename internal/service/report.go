@@ -124,6 +124,7 @@ func (p *reportPlan) addBattery(m report.Meter, known map[string]bool) {
 	p.day[site.QuantityBatteryIn] = report.KeyCharge
 	p.day[site.QuantityBatteryOut] = report.KeyDischarge
 	p.slot[site.QuantityBatteryIn] = report.KeyCharge
+	p.slot[site.QuantityBatteryOut] = report.KeyDischarge
 	p.day[in] = report.MeterKey(report.KeyCharge, m.ID)
 	p.day[out] = report.MeterKey(report.KeyDischarge, m.ID)
 }

@@ -11,6 +11,7 @@ import { todayIn } from '@/format/localdate'
 import { historyOption, type HistoryText } from '@/history/historyOption'
 import { axisLabel, periodTitle, rangeLabel } from '@/history/labels'
 import {
+  chipKeys,
   historyKeys,
   historySeries,
   periodPoints,
@@ -58,6 +59,11 @@ const current = computed(() => points.value[selected.value ?? points.value.lengt
 const names = computed<Record<HistoryKey, string>>(() => ({
   pv: t('energy.pv'),
   consumption: t('energy.consumption'),
+  house: t('roles.house'),
+  wallbox: t('roles.wallbox'),
+  heatpump: t('roles.heatpump'),
+  heater: t('roles.heater'),
+  other: t('roles.other'),
   gridIn: t('energy.gridIn'),
   gridOut: t('energy.gridOut'),
 }))
@@ -133,7 +139,7 @@ const summary = computed(() =>
         />
         <div class="mt-3 flex flex-wrap gap-2">
           <button
-            v-for="k in keys"
+            v-for="k in chipKeys(keys)"
             :key="k"
             type="button"
             class="flex min-h-8 items-center gap-1.5 rounded-full border border-line px-2.5 text-sm"

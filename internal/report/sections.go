@@ -35,6 +35,13 @@ type Category struct {
 type Loadpoints struct {
 	Section
 	Categories []Category
+	// House = consumption − loadpoints over the same days (Wh); nil without such days.
+	// It can be negative when meters disagree.
+	House *float64
+	// HouseSolar ≈ PV-covered part of House, within 0..House; the share is nil when
+	// House is not positive.
+	HouseSolar      float64
+	HouseSolarShare *float64
 }
 
 // Profile is the load profile: mean consumption per slot of day (W, nil without data)
@@ -119,25 +126,87 @@ func loadpoints(days []Day, ms []Meter) *Loadpoints {
 	}
 	days = filterDays(days, meterKeys(KeyLoadpoint, ms))
 	out := &Loadpoints{Section: Section{CompleteDays: len(days)}}
+	gridPart := batteryGridPart(days)
 	for _, m := range ms {
 		me := MeterEnergy{Meter: m}
 		for _, d := range days {
 			in := d.Values[MeterKey(KeyLoadpoint, m.ID)]
 			me.In += in
-			me.Solar += daySolar(d, m.ID, in)
+			me.Solar += daySolar(d, m.ID, in, gridPart)
 		}
 		me.SolarShare = share(me.Solar, me.In)
 		out.Meters = append(out.Meters, me)
 	}
 	out.Categories = categories(out.Meters)
+	out.House = house(days, out.Meters)
+	out.addHouseSolar(days, gridPart)
 	return out
+}
+
+// house is what the loadpoints leave of the consumption of days.
+func house(days []Day, ms []MeterEnergy) *float64 {
+	if len(days) == 0 {
+		return nil
+	}
+	var rest float64
+	for _, d := range days {
+		rest += d.Values[KeyConsumption]
+	}
+	for _, m := range ms {
+		rest -= m.In
+	}
+	return &rest
+}
+
+// batteryGridPart is the part of the battery output that counts as bought from the
+// grid: grid charge / discharge over the days with slots, at most 1. Like the energy
+// flows, all bought energy counts once as grid, battery losses included.
+func batteryGridPart(days []Day) float64 {
+	var charged, discharged float64
+	for _, d := range days {
+		if d.Slots != nil {
+			charged += d.Slots.GridCharge
+			discharged += d.Slots.Discharge
+		}
+	}
+	if part := share(charged, discharged); part != nil {
+		return *part
+	}
+	return 0
+}
+
+// addHouseSolar estimates what PV covers of the house: the PV-covered consumption
+// minus the loadpoints' part of it.
+func (l *Loadpoints) addHouseSolar(days []Day, gridPart float64) {
+	if l.House == nil {
+		return
+	}
+	var solar float64
+	for _, d := range days {
+		solar += daySolarConsumption(d, gridPart)
+	}
+	for _, m := range l.Meters {
+		solar -= m.Solar
+	}
+	l.HouseSolar = max(0, min(solar, *l.House))
+	l.HouseSolarShare = share(l.HouseSolar, *l.House)
+}
+
+// daySolarConsumption is the PV-covered consumption of one day, from the same source as
+// daySolar.
+func daySolarConsumption(d Day, gridPart float64) float64 {
+	if d.Slots != nil {
+		return d.Slots.SolarConsumption.solar(gridPart)
+	}
+	cons := d.Values[KeyConsumption]
+	return cons * solarShare(cons, d.Values[KeyImport])
 }
 
 // daySolar is a loadpoint's PV-covered energy of one day: from the slots, or with the
 // daily solar share when a bucket had a gap.
-func daySolar(d Day, id string, in float64) float64 {
+func daySolar(d Day, id string, in, gridPart float64) float64 {
 	if d.Slots != nil {
-		return d.Slots.Solar[id]
+		return d.Slots.Solar[id].solar(gridPart)
 	}
 	return in * solarShare(d.Values[KeyConsumption], d.Values[KeyImport])
 }

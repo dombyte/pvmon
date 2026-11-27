@@ -33,7 +33,10 @@ export function energyRows(site: SiteModel): EnergyRow[] {
     out.push(row('site/battery_in', 'energy.batteryIn', 'battery'))
     out.push(row('site/battery_out', 'energy.batteryOut', 'battery'))
   }
-  for (const name of site.site_series.filter((s) => s.startsWith(loadpointPrefix))) {
+  const loadpoints = site.site_series.filter((s) => s.startsWith(loadpointPrefix))
+  // Without loadpoints the house equals the consumption.
+  if (loadpoints.length) out.push(row('site/house_rest', 'roles.house', 'home'))
+  for (const name of loadpoints) {
     const cat = name.slice(loadpointPrefix.length)
     out.push(row(name, `roles.${cat}`, categoryToken(cat)))
   }

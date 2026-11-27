@@ -63,6 +63,10 @@
     "Grid exchange (kWh)",
     "Netzaustausch (kWh)"
   ],
+  "column.pv": [
+    "PV",
+    "PV"
+  ],
   "compare.matched.many": [
     "Only the %d days with data in both periods are compared.",
     "Verglichen werden nur die %d Tage mit Daten in beiden Zeiträumen."
@@ -70,6 +74,10 @@
   "compare.matched.one": [
     "Only the %d day with data in both periods is compared.",
     "Verglichen wird nur der %d Tag mit Daten in beiden Zeiträumen."
+  ],
+  "compare.none": [
+    "No day has data in both periods, so nothing is compared.",
+    "Kein Tag hat Daten in beiden Zeiträumen, daher wird nichts verglichen."
   ],
   "compare.title": [
     "Compared with %s",
@@ -156,11 +164,15 @@
     "Aus dem Netz geladen"
   ],
   "loadpoint": [
-    "Loadpoint",
+    "Consumer",
     "Verbraucher"
   ],
+  "house": [
+    "House",
+    "Haus"
+  ],
   "loadpoints": [
-    "Loadpoints",
+    "Loadpoints and consumers",
     "Ladepunkte und Verbraucher"
   ],
   "low.import": [
@@ -216,16 +228,20 @@
     "Schätzungen (≈)"
   ],
   "method.fallback": [
-    "A day with gaps in its 15-minute values uses its daily balance instead.",
-    "Ein Tag mit Lücken in den 15-Minuten-Werten nutzt stattdessen seine Tagesbilanz."
+    "A day with gaps in its 15-minute values uses its daily balance instead: solar share = 1 − import ÷ consumption (0…1), charged from the grid = min(charge, import) of the day.",
+    "Ein Tag mit Lücken in den 15-Minuten-Werten nutzt stattdessen seine Tagesbilanz: Solaranteil = 1 − Bezug ÷ Verbrauch (0…1), aus dem Netz geladen = min(Ladung, Bezug) des Tages."
   ],
   "method.grid_charge": [
     "Charged from the grid = min(charge, import) per 15 minutes.",
     "Aus dem Netz geladen = min(Ladung, Bezug) je 15 Minuten."
   ],
+  "method.house": [
+    "House = consumption − loadpoints, over the days with data for every loadpoint. Its solar energy is that of the consumption − that of the loadpoints.",
+    "Haus = Verbrauch − Verbraucher, über die Tage mit Daten aller Verbraucher. Seine Solarenergie ist die des Verbrauchs − die der Verbraucher."
+  ],
   "method.loadpoint": [
-    "Loadpoint solar energy = loadpoint energy × solar share per 15 minutes.",
-    "Solarenergie eines Verbrauchers = seine Energie × Solaranteil je 15 Minuten."
+    "Loadpoint solar energy = loadpoint energy × share not from the grid per 15 minutes. Grid = import − grid charge, plus the part of the battery output that was bought: grid charge ÷ discharge of the report range (at most 100 %).",
+    "Solarenergie eines Verbrauchers = seine Energie × Anteil nicht aus dem Netz je 15 Minuten. Netz = Bezug − Netzladung, dazu der gekaufte Anteil der Batterieentladung: Netzladung ÷ Entladung im Berichtszeitraum (höchstens 100 %)."
   ],
   "method.missing": [
     "Missing days are listed, never counted as 0 kWh.",
@@ -250,10 +266,6 @@
   "method.self_sufficiency": [
     "Self-sufficiency = (consumption − grid import) ÷ consumption, from the summed energy.",
     "Autarkie = (Verbrauch − Netzbezug) ÷ Verbrauch, aus der summierten Energie."
-  ],
-  "method.solar_share": [
-    "Per 15 minutes: solar share = 1 − import ÷ consumption, limited to 0…1.",
-    "Je 15 Minuten: Solaranteil = 1 − Bezug ÷ Verbrauch, begrenzt auf 0…1."
   ],
   "method.sources": [
     "Consumption sources: grid = import, battery = discharged − charged from the grid, solar = the rest; each capped so they add up to the consumption.",

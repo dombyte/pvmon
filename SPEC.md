@@ -1025,9 +1025,9 @@ The UI is built entirely from `GET /api/v1/site`. It contains no hard-coded devi
 
 | Page | Content | Driven by |
 | --- | --- | --- |
-| Overview | Desktop: energy flow, KPI tiles today, energy table (today / month / year / total), 14-day PV vs consumption trend. Phone: "Power now" balance bars, 4 KPI tiles, energy card with period tabs, last 7 days list | capabilities |
+| Overview | Desktop: energy flow, KPI tiles today, energy table (today / month / year / total; a House row when the site has loadpoints), 14-day PV vs consumption trend. Phone: "Power now" balance bars, 4 KPI tiles, energy card with period tabs, last 7 days list | capabilities |
 | Day view | 15-minute power of one day. PV area (min/max band as an opt-in chip). House and loadpoint areas, stacked: the top is the consumption (a category with several loadpoints can be split into one area per meter, from its power gauge). A slot without house value draws no part of the stack. A negative house value stays visible below zero. Grid bars (import up, export down). Battery bars (charge up, discharge down) with the SoC line on a second axis. Synced crosshair with aligned time axes. Date from the calendar picker. Day summary (per meter when split) and data quality | series catalogue |
-| History | day / month / year bars per series with range picker (11.8) | series catalogue, `data_since` |
+| History | day / month / year bars per series with range picker (11.8). With loadpoints, House and one part per category are stacked in place of the consumption bar. A period without house value shows the consumption bar | series catalogue, `data_since` |
 | Reports | period presets, one date range picker and comparison select, preview (the period table is folded until opened), PDF/CSV download as blob (errors shown in the page) | capabilities |
 | Devices | List with state, profile, verified flag, interval and the duration of the last poll. Detail page with all live channels of the profile, grouped (AC, DC/strings, battery, temperature), and the netting check for grid meters. Status: the connection and every status register of the profile as day bars (registers shown or hidden per device and browser), the messages of a selected day (`?day=`) or the newest 50 | profile |
 | Status | One row per device with its generic level per day (worst of `fault` > `offline` > `notice` > `ok` > `none`), the current level with its start time, and the live connection state. Hover on a day (desktop) shows how long each level lasted that day (the device page does the same per register message). Desktop shows 30 or 90 days (per browser, shared with the device page); the compact layout shows 30. A day opens the device page on that day (`/devices/{id}?day=…#status`) | devices |
@@ -1209,7 +1209,7 @@ Reports keep the definitions of solis. They compute on site quantities from 15-m
 | Summary, energy flows | always | PV, consumption, import, export, self-sufficiency, self-consumption rate |
 | Battery | ≥ 1 battery | charged, discharged, grid charging (≈), discharged ÷ charged (plain quotient, never called efficiency); per battery from 2 |
 | PV sources | ≥ 2 `pv` meters | share and specific yield (kWh/kWp when `kwp` is set) |
-| Loadpoints | ≥ 1 consumer under the site | energy and PV share per category and per loadpoint |
+| Loadpoints | ≥ 1 consumer under the site | energy and PV share per category and per loadpoint; House (consumption − loadpoints, same days) with its PV share |
 | Load profile | always | mean consumption per 15-minute slot of day, peak = highest 15-minute mean |
 | Comparison | `compare` ≠ none | energy in kWh and %, ratios in points; only matched days are compared |
 | Data quality | always | missing days and gaps per meter, estimated shares, device changes in the period |
@@ -1218,12 +1218,12 @@ Reports keep the definitions of solis. They compute on site quantities from 15-m
 **Definitions:**
 
 - Self-sufficiency = (consumption − import) / consumption. Self-consumption rate = (PV − export) / PV. Both come from summed energy, never from averaged ratios.
-- **Time-resolved estimates:** per 15-minute bucket, solar share = clamp(1 − import / consumption, 0, 1). Loadpoint PV energy = loadpoint energy × solar share. Grid charging of the battery = min(charge, import) per bucket. The report sums these over the period and marks them ≈. A bucket with gaps falls back to the daily balance for that day. The report states this.
+- **Time-resolved estimates:** Grid charging of the battery = min(charge, import) per 15-minute bucket. For each bucket, direct grid share = clamp((import − grid charge) / consumption, 0, 1) and battery share = min(1 − direct grid share, discharge / consumption). The grid part of the battery = min(1, Σ grid charge / Σ discharge) over the days of the loadpoint section that have 15-minute values, so bought energy counts once, as grid, also when the battery delivers it. Loadpoint PV energy = Σ loadpoint energy × (1 − direct grid share − grid part × battery share). Without grid charging this is energy × (1 − import / consumption). House PV energy = the same sum for the consumption − loadpoint PV energy, kept within 0 and House; it has no value when House is not positive. A day with gaps uses solar share = clamp(1 − import / consumption, 0, 1) of its daily balance. The report sums these over the period and marks them ≈. A bucket with gaps falls back to the daily balance for that day. The report states this.
 - The consumption sources (grid, battery, solar) are capped so that they add up to consumption. The residual is the "balance difference", never "losses".
 - A day counts only with data for every series of the section. The report lists missing days and never counts them as 0 kWh. Ratios that need stable data (battery quotient, balance difference) appear only from 28 complete days.
 - The report keeps standard figures apart from the estimates of this app (≈; CSV columns `_est_kwh`).
 
-**Formats:** JSON preview, CSV and PDF (A4; summary, flows, patterns + comparison, table, method page). Rounding: API 2 decimals, PDF and UI 1 decimal, identical digits. The PDF palette is a print palette. It is independent of the UI theme and readable in greyscale. The language comes from `lang`.
+**Formats:** JSON preview, CSV and PDF (A4; summary, flows, patterns + comparison, table, method page. A report of one period leaves out the charts and the table, one with fewer than 2 complete days the patterns. A comparison without a common day is one sentence). Rounding: API 2 decimals, PDF and UI 1 decimal, identical digits. The PDF palette is a print palette. It is independent of the UI theme and readable in greyscale. The language comes from `lang`.
 
 **Status:**
 
