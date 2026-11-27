@@ -71,6 +71,7 @@ cd frontend && npm run typecheck && npm run lint && npm run knip && npm test
   - a regex manager for the golangci-lint `version:`
 
   A change that adds a pin extends `renovate.json`.
+- Syntax grammars: `docs/site/.vitepress/grammars.mjs` removes the grammars that the site does not use, because some have the GPL license. Before you add a grammar, make sure that its license permits it.
 - Documentation site: `docs.yml` publishes only one version, after each stable release or by a manual start. A manual start on `main` publishes `main`. `npm --prefix docs run dev` shows the site and the API pages locally.
 - Release: push a SemVer tag `vX.Y.Z` on `main`. `release.yml` runs the checks again. goreleaser (`make assets` in its before hooks) builds the archives and images. The image tag `latest` exists only for stable releases.
 
