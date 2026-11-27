@@ -33,13 +33,14 @@ describe('day model', () => {
 
   it('turns Wh per slot into W, nets grid and battery, takes PV from the gauge', () => {
     const req = dayRequest(
-      site(['site/pv', 'site/consumption', 'site/grid_in', 'site/grid_out', 'site/battery_in',
+      site(['site/pv', 'site/consumption', 'site/house_rest', 'site/grid_in', 'site/grid_out', 'site/battery_in',
         'site/battery_out', 'site/soc', 'site/loadpoints/wallbox']),
     )
     const e = Object.fromEntries(
       [
         energy('site/pv', [500, null]),
         energy('site/consumption', [300, null]),
+        energy('site/house_rest', [250, null]),
         energy('site/grid_in', [0, null]),
         energy('site/grid_out', [100, null]),
         energy('site/battery_in', [150, null]),
@@ -53,7 +54,7 @@ describe('day model', () => {
     }
     const [a, b] = daySlots(e, g, req)
     expect(a).toEqual({
-      at: at('12:00'), time: '12:00', pv: 1900, pvMin: 1500, pvMax: 2600, consumption: 1200,
+      at: at('12:00'), time: '12:00', pv: 1900, pvMin: 1500, pvMax: 2600, consumption: 1200, house: 1000,
       loadpoints: { wallbox: 200 }, grid: -400, battery: -600, soc: null,
     })
     expect(b).toMatchObject({ pv: null, grid: null, battery: null, soc: 64 })

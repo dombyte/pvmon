@@ -13,7 +13,7 @@ const meterSums = (site: SiteModel, req: DayRequest) =>
     .filter((n) => site.meters.some((m) => m.series.includes(n)))
 
 /**
- * Sums of the day card: energies, loadpoints (also per meter) and self-sufficiency (every
+ * Sums of the day card: energies, house, loadpoints (also per meter) and self-sufficiency (every
  * site has it).
  */
 const daySums = (site: SiteModel, req: DayRequest) => [
@@ -21,6 +21,7 @@ const daySums = (site: SiteModel, req: DayRequest) => [
   ...[
     'site/pv',
     'site/consumption',
+    'site/house_rest',
     ...req.categories.map((c) => `site/loadpoints/${c}`),
     'site/grid_in',
     'site/grid_out',

@@ -46,6 +46,7 @@ export function dayRequest(site: SiteModel): DayRequest {
   const energy = [
     'site/pv',
     'site/consumption',
+    'site/house_rest',
     'site/grid_in',
     'site/grid_out',
     'site/battery_in',
@@ -70,6 +71,8 @@ export interface DaySlot {
   pvMin: number | null
   pvMax: number | null
   consumption: number | null
+  /** Consumption without the loadpoints (can be negative: a balance difference). */
+  house: number | null
   loadpoints: Record<string, number | null>
   /** + import, − export. */
   grid: number | null
@@ -120,6 +123,7 @@ export function daySlots(
     pvMin: pick(pvG, at, 'min'),
     pvMax: pick(pvG, at, 'max'),
     consumption: e('site/consumption', at),
+    house: e('site/house_rest', at),
     // Categories by name, single meters as "m:<id>" (their power average).
     loadpoints: Object.fromEntries([
       ...req.categories.map((c) => [c, e(`site/loadpoints/${c}`, at)]),

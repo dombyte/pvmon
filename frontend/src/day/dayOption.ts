@@ -1,5 +1,6 @@
 // ECharts options of the day view (spec 11.3, 11.7): generation and consumption (PV with
-// an optional min/max band, consumption, loadpoints per category or per meter), grid
+// an optional min/max band, the house and loadpoints per category or per meter, stacked up
+// to the consumption), grid
 // (import up, export down) and battery (charge up, discharge down, SoC line). Pure:
 // everything comes in as arguments, so it is tested without a DOM.
 import type { EChartsCoreOption } from 'echarts/core'
@@ -8,14 +9,14 @@ import { tooltipBody, tooltipRow } from '@/charts/tooltip'
 import { formatNumber, formatPercent, formatPower, type Lang } from '@/format'
 import type { DaySlot } from './model'
 
-/** One loadpoint line: a whole category or one meter of a split category. */
+/** One loadpoint area: a whole category or one meter of a split category. */
 export interface LoadLine {
   /** Key in DaySlot.loadpoints. */
   key: string
   name: string
   token: keyof Tokens
-  /** Meters of one category share its colour and differ by dash. */
-  dash: 'solid' | 'dashed' | 'dotted'
+  /** Meters of one category share its colour and differ by shade. */
+  opacity: number
 }
 
 export interface DayText {
@@ -23,7 +24,8 @@ export interface DayText {
   pv: string
   pvBand: string
   consumption: string
-  /** Visible loadpoint lines. */
+  house: string
+  /** Visible loadpoint areas. */
   loadpoints: LoadLine[]
   gridIn: string
   gridOut: string
@@ -37,7 +39,7 @@ export interface DayText {
 export interface DayVisible {
   pv: boolean
   band: boolean
-  consumption: boolean
+  house: boolean
   grid: boolean
   battery: boolean
 }
@@ -51,6 +53,8 @@ const sideRight = 40
 const labelEvery = 12 // one axis label per 3 hours
 const bandOpacity = 0.3
 const areaOpacity = 0.18
+const stackOpacity = 0.55
+const pvLevel = 3 // the PV line stays above the consumer areas
 const fullPercent = 100
 
 /** "13:00–13:15" of a slot. */
@@ -127,7 +131,8 @@ function powerRows(vis: DayVisible, t: Tokens, x: DayText): Formatter {
     if (vis.pv && vis.band && s.pvMin !== null && s.pvMax !== null) {
       rows.push(tooltipRow(x.pvBand, `${power(s.pvMin, x)} – ${power(s.pvMax, x)}`))
     }
-    if (vis.consumption) rows.push(tooltipRow(x.consumption, power(s.consumption, x), t.home))
+    rows.push(tooltipRow(x.consumption, power(s.consumption, x)))
+    if (vis.house) rows.push(tooltipRow(x.house, power(s.house, x), t.home))
     for (const l of x.loadpoints) {
       rows.push(tooltipRow(l.name, power(s.loadpoints[l.key] ?? null, x), t[l.token]))
     }
@@ -135,7 +140,30 @@ function powerRows(vis: DayVisible, t: Tokens, x: DayText): Formatter {
   }
 }
 
-/** Generation and consumption: PV (area, or line plus band), consumption, loadpoints. */
+/**
+ * One part of the consumption stack. A slot without the house value has no balance, so no
+ * part is drawn: a stack of the rest alone would look like the total.
+ */
+function part(
+  slots: DaySlot[],
+  name: string,
+  color: string,
+  value: (s: DaySlot) => number | null,
+  opacity = stackOpacity,
+) {
+  const data = slots.map((s) => (s.house === null ? null : kw(value(s))))
+  return {
+    ...line(name, color, data),
+    stack: 'use',
+    // 'all' stacks onto a negative house too, so the top stays the consumption.
+    stackStrategy: 'all',
+    // No outline: a part at 0 W would paint its colour along the top of the part below.
+    lineStyle: { width: 0, color },
+    areaStyle: { color, opacity },
+  }
+}
+
+/** Generation (PV line, optional band) and the consumption stack: house, loadpoints. */
 export function powerOption(
   slots: DaySlot[],
   vis: DayVisible,
@@ -145,14 +173,16 @@ export function powerOption(
 ): EChartsCoreOption {
   const series: object[] = []
   if (vis.pv && vis.band) series.push(...band(slots, t))
-  if (vis.pv) series.push(line(x.pv, t.pv, slots.map((s) => kw(s.pv)), !vis.band))
-  if (vis.consumption) series.push(line(x.consumption, t.home, slots.map((s) => kw(s.consumption))))
+  if (vis.pv) series.push({ ...line(x.pv, t.pv, slots.map((s) => kw(s.pv))), z: pvLevel })
+  if (vis.house) series.push(part(slots, x.house, t.home, (s) => s.house))
   for (const l of x.loadpoints) {
-    const s = line(l.name, t[l.token], slots.map((v) => kw(v.loadpoints[l.key] ?? null)))
-    series.push({ ...s, lineStyle: { ...s.lineStyle, type: l.dash } })
+    const value = (s: DaySlot) => s.loadpoints[l.key] ?? null
+    series.push(part(slots, l.name, t[l.token], value, l.opacity))
   }
   const b = base(slots, t, x, animate, powerRows(vis, t, x))
-  return { ...b, yAxis: { ...b.yAxis, min: 0 }, series }
+  // From zero, but a negative house (balance difference) stays visible.
+  const min = (v: { min: number }) => Math.min(0, v.min)
+  return { ...b, yAxis: { ...b.yAxis, min }, series }
 }
 
 /** Grid as bars: import above zero, export below. */
