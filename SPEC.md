@@ -1284,13 +1284,14 @@ Data correction commands print a before/after summary. They need `--yes` to writ
 
 ## 15. Testing and quality gates
 
-Unit tests use no network, no real clock and no sleeps. Deterministic fixtures pin every behaviour. Tests are table-driven with testify. Mocks come from mockery and are never edited by hand. `make check` runs the same checks as CI. It MUST pass before every merge.
+Unit tests use no network, no real clock and no sleeps. Deterministic fixtures pin every behaviour. Tests are table-driven with testify. Mocks come from mockery and are never edited by hand. `make check` runs the checks of CI and the simulation. It MUST pass before every merge.
 
 | Level | Scope | Tool |
 | --- | --- | --- |
 | Profile golden | recorded or documentation-based fixture → expected normalised channels for every built-in profile | Go |
 | Counter and netting | lifetime overflow, glitch hold, meter replacement, daily reset incl. reset group, integration across gaps, netting methods 1 and 2, resolution switch | Go, table-driven, fake clock |
 | Replay | sample sequences of whole days incl. midnight, DST (Europe/Berlin) and outages → expected buckets and day values per series | Go |
+| Simulation | a virtual device with random power runs profiles through the collector with device and pvmon faults; local only, not in CI | Go, fake clock |
 | Reference setups | R1–R7 configs + replay → site quantities, `/api/v1/site`, reports | Go |
 | Storage | write domains, cache invalidation on past writes, retention with carry, migrations, backup verification | Go + SQLite |
 | Transport | Modbus TCP and RTU (virtual serial pair + simulator, shared bus with two unit IDs), HTTP drivers against recorded responses | Go |

@@ -180,3 +180,4 @@ run:
   timeout: 5m
   allow-parallel-runners: true
   modules-download-mode: readonly
+  build-tags: [simulation] # lint the simulation tests too (make check runs them)

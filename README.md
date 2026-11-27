@@ -266,7 +266,7 @@ numbers.
 ```bash
 make build                       # build ./pvmon with the version from git
 go run ./cmd simulate --setup R3 # run with simulated devices
-make check                       # all checks of the CI
+make check                       # all checks of the CI and the collector simulation
 ```
 
 To build, you need Go 1.27.4 and Node.js for the frontend. Read AGENTS.md before you

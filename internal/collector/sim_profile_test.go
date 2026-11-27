@@ -1,3 +1,5 @@
+//go:build simulation
+
 package collector_test
 
 import (
@@ -33,7 +35,7 @@ type simDevice struct {
 // scenario (PVMON_SIM=full: every scenario). With -profile it runs that one in every
 // scenario:
 //
-//	go test -run ProfileSimulation ./internal/collector -profile=my-device.yaml
+//	go test -tags simulation -run ProfileSimulation ./internal/collector -profile=my-device.yaml
 func TestProfileSimulation(t *testing.T) {
 	t.Parallel()
 	loader, err := profile.NewLoader(profiles.FS(), os.ReadFile)
