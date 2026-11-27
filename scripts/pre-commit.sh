@@ -168,6 +168,11 @@ else
     echo "docker not available: frontend e2e skipped (CI runs it)"
 fi
 
+# 9. API docs and documentation site. VitePress stops on a dead link.
+echo "Checking docs..."
+make docs docs-site
+print_result $? "docs (Swagger UI, documentation site)"
+
 echo ""
 echo "=== Pre-commit Checks Complete ==="
 

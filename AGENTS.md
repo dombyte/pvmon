@@ -57,7 +57,7 @@ go run ./cmd version                        # build info (also -version)
 cd frontend && npm run typecheck && npm run lint && npm run knip && npm test
 ```
 
-- `make check` runs the checks of CI and the collector simulation, which CI does not run. CI (`checks.yml`) also runs the tidy check, the mock drift check, the profile golden tests, the frontend checks, the i18n key check, the bundle budget and the Playwright e2e tests. Run `make check` before every merge.
+- `make check` runs the checks of CI and the collector simulation, which CI does not run. CI (`checks.yml`) also runs the tidy check, the mock drift check, the profile golden tests, the frontend checks, the docs build, the i18n key check, the bundle budget and the Playwright e2e tests. Run `make check` before every merge.
 - `.golangci.yml` is the source of the lint and size rules (taken over from solis). Do not relax it without a deviation in section 12.3.
 - The toolchain is Go 1.27.4 (`go` directive in `go.mod`). Pin tool versions. Bump them deliberately. Use the same versions locally and in CI.
 - Go tools (mockery, deadcode, govulncheck) are `tool` directives in `go.mod`. Run them with `go tool <name>`. Bump them with `go get -tool <module>@vX.Y.Z`. A pinned `go run` checks sum.golang.org on every CI run.
@@ -71,6 +71,7 @@ cd frontend && npm run typecheck && npm run lint && npm run knip && npm test
   - a regex manager for the golangci-lint `version:`
 
   A change that adds a pin extends `renovate.json`.
+- Documentation site: `docs.yml` publishes only one version, after each stable release or by a manual start. A manual start on `main` publishes `main`. `npm --prefix docs run dev` shows the site and the API pages locally.
 - Release: push a SemVer tag `vX.Y.Z` on `main`. `release.yml` runs the checks again. goreleaser (`make assets` in its before hooks) builds the archives and images. The image tag `latest` exists only for stable releases.
 
 ## 3. Structure
