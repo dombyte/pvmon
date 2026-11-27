@@ -12,6 +12,9 @@ COPY --from=ghcr.io/tarampampam/microcheck:1 /bin/httpcheck /bin/httpcheck
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY $TARGETPLATFORM/pvmon /app
+# The same paths as in the repository, so that the link to ../LICENSE operates.
+COPY LICENSE /app/
+COPY LICENSES/THIRD_PARTY_NOTICES.md /app/LICENSES/
 
 EXPOSE 8080
 ENTRYPOINT ["/app/pvmon"]

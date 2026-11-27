@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitepress'
+import { removeUnusedGrammars } from './grammars.mjs'
 import { apiSidebar } from './spec.mjs'
 
 const repo = 'https://github.com/dombyte/pvmon'
@@ -15,6 +16,7 @@ export default defineConfig({
   // openapi.yaml is outside of the site, so the dev server must watch it explicitly.
   vite: {
     plugins: [
+      removeUnusedGrammars(),
       {
         name: 'watch-openapi',
         configureServer: (server) =>

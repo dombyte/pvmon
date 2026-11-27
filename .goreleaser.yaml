@@ -49,6 +49,7 @@ archives:
     files:
       - LICENSE
       - README.md
+      - LICENSES/THIRD_PARTY_NOTICES.md
 
 changelog:
   sort: asc
@@ -133,6 +134,9 @@ dockers_v2:
       - linux/arm64
       - linux/arm/v7
     dockerfile: Dockerfile.goreleaser
+    extra_files:
+      - LICENSE
+      - LICENSES/THIRD_PARTY_NOTICES.md
     labels: &oci
       org.opencontainers.image.title: pvmon
       org.opencontainers.image.description: >-
@@ -147,6 +151,11 @@ dockers_v2:
       org.opencontainers.image.created: "{{ .CommitDate }}"
     # Annotations are what ghcr.io shows on the package page for multi-arch images.
     annotations: *oci
+
+# One software bill of materials for each archive (needs syft). dockers_v2 attaches one
+# to the images by default.
+sboms:
+  - artifacts: archive
 
 checksum:
   name_template: "checksums.txt"

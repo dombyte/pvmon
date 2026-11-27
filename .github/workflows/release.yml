@@ -81,6 +81,9 @@ jobs:
           cache-dependency-path: |
             frontend/package-lock.json
             docs/package-lock.json
+      # goreleaser writes the SBOMs with syft.
+      - uses: anchore/sbom-action/download-syft@v0.24.4
+
       # Required by goreleaser dockers_v2 for multi-platform builds (binfmt emulation).
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4

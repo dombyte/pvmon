@@ -269,4 +269,6 @@ send a pull request.
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE). The licenses of the third-party code are in
+[LICENSES/](LICENSES/). The release archives and the container image contain
+[THIRD_PARTY_NOTICES.md](LICENSES/THIRD_PARTY_NOTICES.md).
