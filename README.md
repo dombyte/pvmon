@@ -48,20 +48,12 @@ not send data to the internet.
 | `shelly/pro-3em` | Shelly Pro 3EM energy meter | HTTP (Gen2) | yes |
 | `shelly/3em` | Shelly 3EM energy meter | HTTP (Gen1) | no |
 | `eastron/sdm630` | Eastron SDM630 energy meter | Modbus TCP/RTU | no |
-| `goe/charger-v2` | go-eCharger (API v2) | HTTP | no |
-| `tinkerforge/warp3` | Tinkerforge WARP3 Charger Pro | HTTP | no |
+| `goe/charger-v2` | go-eCharger (API v2) | HTTP | yes |
+| `tinkerforge/warp3` | Tinkerforge WARP3 Charger Pro | HTTP | yes |
 | `opendtu/total` | OpenDTU (Hoymiles micro inverters) | HTTP | no |
 
-"Verified: no" means that the profile comes from the vendor documentation only. It can
-contain errors. If you have one of these devices, send a dump (see
-[Device profiles](#device-profiles)).
-
-If your device is not in the list, you can write your own profile.
 
 ## Installation
-
-pvmon runs on Linux and macOS. Windows is not supported. A Raspberry Pi 3B+ or 4 is
-sufficient.
 
 ### Docker Compose (recommended)
 
