@@ -32,9 +32,14 @@ type load struct {
 	power func(time.Time) float64
 	wh    float64
 	last  time.Time
+	// reset, if set, is when the device restarts its daily counter at 0.
+	reset time.Time
 }
 
 func (l *load) words(now time.Time) map[int]uint16 {
+	if !l.reset.IsZero() && l.last.Before(l.reset) && !now.Before(l.reset) {
+		l.wh = 0
+	}
 	if !l.last.IsZero() {
 		l.wh += l.power(now) * now.Sub(l.last).Hours()
 	}
@@ -113,6 +118,36 @@ func TestCoarseStepFollowsPower(t *testing.T) {
 	assert.InDelta(t, 0, idle.Wh, edge+1e-6, "no energy in the idle hours")
 	assert.InDelta(t, 500, r.slot(t, 120).Wh, edge+1e-6, "15 min at 2 kW, in 0.1 kWh steps")
 	assert.Zero(t, idle.Flags|r.slot(t, 120).Flags)
+}
+
+// TestResetKeepsEnergyInItsPeriod: the first booking after a reset is shaped only by the
+// power after it, so the period before the reset ends at its last register value.
+func TestResetKeepsEnergyInItsPeriod(t *testing.T) {
+	t.Parallel()
+	for name, c := range map[string]struct {
+		power  float64
+		before time.Duration // reset this long before the slot boundary
+	}{
+		"on the boundary":          {power: 450},
+		"device clock early":       {power: 450, before: 15 * time.Second},
+		"high power":               {power: 5000, before: 15 * time.Second},
+		"no step before confirmed": {power: 370},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			r := newCoarseRun(t, constant(c.power))
+			r.l.reset = minutes(120).Add(-c.before)
+			r.session(t, minutes(180))
+			// What the register showed just before the reset, plus the new day's energy
+			// that really flowed before the boundary.
+			register := math.Floor(c.power*(r.l.reset.Sub(moreStart)-pollInterval).Hours()/100) * 100
+			want := register + c.power*c.before.Hours()
+			// One poll of power may fall on either side of the reset.
+			edge := c.power*pollInterval.Hours() + 1
+			before := r.e.total(t, "backup", "energy_in", moreStart, minutes(120))
+			assert.InDelta(t, want, before.Wh, edge)
+		})
+	}
 }
 
 // TestShortFailureIsNotEstimated: one failed poll is a slow cycle, not an outage.

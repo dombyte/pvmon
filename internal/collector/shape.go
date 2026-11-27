@@ -1,6 +1,9 @@
 package collector
 
-import "time"
+import (
+	"maps"
+	"time"
+)
 
 // Shape integrates the power of a meter in one direction per slot since the last base of a
 // counter. A coarse counter step is then spread like the power flowed instead of evenly
@@ -40,10 +43,21 @@ func (s *Shape) Cut(at time.Time) {
 	s.since = at
 }
 
-// Weights returns the weight per slot when the shape covers everything since from, else nil.
+// Weights returns the weight per slot of the time since from when the shape covers all of
+// it, else nil. The first slot counts only with its part after from: after a counter reset
+// the power before it belongs to the previous period.
 func (s *Shape) Weights(from time.Time) map[int64]float64 {
 	if s.since.IsZero() || s.since.After(from) {
 		return nil
 	}
-	return s.wh
+	w := maps.Clone(s.wh)
+	first := Slot(from)
+	if x, ok := w[first]; ok {
+		// shortcut: a slot holds one sum, so its power is taken as even over the covered
+		// part; keep the samples if a reset inside a slot ever needs to be exact.
+		end := SlotStart(first).Add(slotLen)
+		covered := end.Sub(maxTime(s.since, SlotStart(first)))
+		w[first] = x * end.Sub(from).Seconds() / covered.Seconds()
+	}
+	return w
 }
