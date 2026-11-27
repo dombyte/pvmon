@@ -32,9 +32,10 @@ type CounterConfig struct {
 	UnitFactor float64 // Wh per raw unit (kWh: 1000)
 }
 
-// EffectiveResolution = max(profile resolution, type precision at v) (spec 5.3).
+// EffectiveResolution = max(profile resolution, type precision at v) (spec 5.3). The
+// precision of an integer register is one raw count, of an f32 its step at v.
 func (c CounterConfig) EffectiveResolution(v float64) float64 {
-	res := c.Resolution
+	res := math.Max(c.Resolution, c.Step)
 	if c.Float32 {
 		f := c.UnitFactor
 		if f == 0 {
@@ -49,10 +50,10 @@ func (c CounterConfig) EffectiveResolution(v float64) float64 {
 
 // plausible reports whether d Wh can have been produced within elapsed at max power. A
 // counter counts in steps: the energy below one step at the previous reading shows up
-// later, so a delta may exceed max power × elapsed by one step (resolution or raw count).
+// later, so a delta may exceed max power × elapsed by one effective resolution.
 func (c CounterConfig) plausible(d float64, elapsed time.Duration, v float64) bool {
 	return c.MaxPower == 0 ||
-		d <= c.MaxPower*elapsed.Hours()+math.Max(c.EffectiveResolution(v), c.Step)
+		d <= c.MaxPower*elapsed.Hours()+c.EffectiveResolution(v)
 }
 
 // reading is one accepted or held raw value.
