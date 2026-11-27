@@ -296,7 +296,7 @@ Unit tests use no network, no real clock and no sleeps. Deterministic fixtures p
 | --- | --- | --- |
 | Profile golden | recorded or documentation-based fixture → expected normalised channels for every built-in profile | Go |
 | Counter and netting | lifetime overflow, glitch hold, meter replacement, daily reset incl. reset group, integration across gaps, netting methods 1 and 2, resolution switch | Go, table-driven, fake clock |
-| Replay | sample sequences of whole days incl. midnight, DST (Europe/Berlin) and outages → expected buckets and day values per series | Go |
+| Replay | sample sequences of whole days incl. midnight, DST (Europe/Berlin) and outages → expected buckets and day values per series; a virtual device with random power runs profiles through the core with device and pvmon faults (`TestSimulation`; every device template: `go test -run ProfileSimulation ./internal/collector -profile=<id or file>`; `PVMON_SIM=full`, `PVMON_SIM_SEED=<n>`) | Go |
 | Reference setups | R1–R7 configs + replay → site quantities, `/api/v1/site`, reports | Go |
 | Storage | write domains, cache invalidation on past writes, retention with carry, migrations, backup verification | Go + SQLite |
 | Transport | Modbus TCP and RTU (virtual serial pair + simulator, shared bus with two unit IDs), HTTP drivers against recorded responses | Go |
