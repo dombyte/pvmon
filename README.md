@@ -10,6 +10,8 @@ not send data to the internet.
 
 ![Overview](frontend/e2e/__screenshots__/desktop/overview-r4-light.png)
 
+**Documentation:** <https://dombyte.github.io/pvmon/>
+
 ## Contents
 
 - [Features](#features)

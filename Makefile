@@ -27,6 +27,11 @@ frontend:
 docs:
 	npm --prefix docs ci && VITE_APP_VERSION=$(VERSION) npm --prefix docs run build
 
+# Builds the documentation site for GitHub Pages. It is not part of the binary.
+.PHONY: docs-site
+docs-site:
+	npm --prefix docs ci && VITE_APP_VERSION=$(VERSION) npm --prefix docs run build:site
+
 .PHONY: assets
 assets: frontend docs
 

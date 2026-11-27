@@ -3,10 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "dev": "vitepress dev site",
+    "build:site": "vitepress build site"
   },
   "devDependencies": {
-    "swagger-ui-dist": "5.36.0"
+    "swagger-ui-dist": "5.36.0",
+    "vitepress": "1.6.4",
+    "vitepress-openapi": "0.2.21"
   },
   "scarfSettings": {
     "enabled": false

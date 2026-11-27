@@ -14,12 +14,17 @@ specification; all other section numbers point to this file.
 Write all documentation and comments in English and in ASD-STE100 Simplified Technical
 English. Only the German translation file of the UI is German.
 
+Documentation MUST contain only information that the reader needs. Do not add marketing
+text, slogans, repeated summaries or filler. In ASD-STE100, a procedural sentence has at
+most 20 words and one instruction. A descriptive sentence has at most 25 words. Examine
+each technical statement against the code before you write it.
+
 ## 1. Overview
 
 One Go binary is the whole application. The `go:embed` directive puts these parts into the binary:
 
 - the frontend (`frontend/dist`)
-- Swagger UI and the OpenAPI document
+- Swagger UI and the OpenAPI document (the documentation site is not embedded)
 - all built-in profiles
 - the PDF fonts
 - the list of common passwords
@@ -41,7 +46,7 @@ go test -race -tags integration ./...       # real devices, never in CI
 go test -tags simulation -run Simulation ./internal/collector    # in make check, not in CI
 go test -tags simulation -run ProfileSimulation ./internal/collector -profile=<id or file>
 make assets | build | all | docker          # dists; ./pvmon with ldflags; both; dev image
-make docs                                   # Swagger UI for the binary
+make docs | docs-site                       # Swagger UI for the binary; documentation site
 make e2e | e2e-update                       # Playwright screenshots + axe in the CI image
 go run ./cmd [-config <path>]               # server (default ./config.yaml)
 go run ./cmd simulate --setup R3            # fake transports for UI work (SPEC.md section 13)
@@ -104,7 +109,8 @@ internal/
   <pkg>/mocks/       mockery-generated (never hand-edit)
 profiles/<vendor>/   built-in YAML profiles (embedded via go:embed); fixtures + golden values next to them
 frontend/            Vue 3 + Vite + Pinia + vue-i18n + Tailwind 4 + @lucide/vue + ECharts
-docs/                openapi.yaml + Swagger UI (built to docs/dist, embedded)
+docs/                openapi.yaml + Swagger UI (built to docs/dist, embedded); site/ = VitePress
+                     guide and API pages (built to docs/dist-site, GitHub Pages only)
 example/             docker-compose (TCP, RTU) and config.yaml templates
 .dev/                local development material (gitignored, not part of the project)
 ```
@@ -428,6 +434,8 @@ golangci-lint and goreleaser run as pinned prebuilt binaries (as in solis). They
 | Package | Version | Released | Why | Alternative considered |
 | --- | --- | --- | --- | --- |
 | `swagger-ui-dist` | 5.36.0 | 2026-11-23 | API reference in the binary, static files | an own API page |
+| `vitepress` | 1.6.4 | 2025-08-05 | documentation site: sidebar, local search | plain Markdown on GitHub; 2.0 is still alpha |
+| `vitepress-openapi` | 0.2.21 | 2026-11-26 | API pages inside the documentation site, from `openapi.yaml` | Redoc (separate page with its own design); `@scalar/api-reference` (much larger dependency tree) |
 
 ### Frontend (build and test only)
 
@@ -454,7 +462,7 @@ golangci-lint and goreleaser run as pinned prebuilt binaries (as in solis). They
 - Go: 13 direct runtime modules (6 core + zerolog + timberjack + 5 koanf parts) and about 15 indirect modules (solis: about 60). Tests add testify and mockery.
 - Browser: 7 packages (solis: 20).
 - Build and test: 15 packages.
-- Documentation: 1 package.
+- Documentation: 3 packages.
 
 ### Logging output
 
@@ -534,7 +542,7 @@ Gaps between this document and the repository:
 - **Fast climb after a reset.** A new day that reaches the old value in one reading counts as a glitch.
 - **Reports.** The data-quality section does not list device changes in the period, because no device history is stored.
 - **Netting `app`.** The daily drift check of coarse counters against the device totals (section 6) is not implemented. Device health `stale` (SPEC.md section 8.2) is not detected yet.
-- **docs/.** The contract test compares routes and paths only. It does not compare the response schemas with the handlers. `docs/openapi.yaml` has no generator. Change it together with the behaviour.
+- **docs/.** The contract test compares routes and paths only. It does not compare the response schemas with the handlers. `docs/openapi.yaml` and the pages in `docs/site` have no generator. Change them together with the behaviour.
 - **Lint.** `errcheck` and `gosec` in `.golangci.yml` do not flag `Close` and file paths. For this reason, `_ = x.Close()` carries a comment instead of the `//nolint` that section 7 asks for.
 
 ### 12.3 Deviations
