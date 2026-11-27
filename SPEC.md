@@ -396,8 +396,9 @@ Pvmon writes the state in the same transaction as the bucket upsert. The raw bas
 
 **Spreading a counter delta.** A counter delta covers the time since its base exactly. The base is the last reading that changed the value: an unchanged reading keeps it, for `lifetime` and `daily_reset` alike. After a restart, a `lifetime` base starts at `seen`: the power since its last change is not restored, and up to `seen` the counter stood still. A `daily_reset` base keeps its last change, because it limits where a reset is placed. A delta of 0 Wh is booked only since the last booking of the counter, so pvmon writes only the new slots. Netting books the net of a poll since the last successful poll: both counters were read there. Pvmon spreads the delta over the slots of that time:
 
-- in proportion to the power of the same block in the direction of the counter (section 2), integrated per slot (trapezoid between polls, bridged over failed polls and outages). A coarse step (for example 0.1 kWh) then lands where the power flowed.
-- evenly when the block has no power, the power does not cover the whole time (after a restart) or shows no flow in it.
+- in proportion to the power of the same block in the direction of the counter (section 2), integrated per slot (trapezoid between polls, bridged over failed polls). A coarse step (for example 0.1 kWh) then lands where the power flowed. An outage is not bridged. The part of the delta that the measured power does not explain is spread evenly over the time of the outages. When the delta is smaller than the measured energy, the measured slots are scaled down.
+- evenly when the block has no power, the power does not cover the whole time (after a restart) or shows no flow in it and in no outage. Without power over the whole time, the even spread starts no earlier than the last poll that read the counter before a restart or an outage: until then the counter stood still. A reset booking starts at the reset.
+- A shared counter (section 4.2) is spread the same way as a counter without power.
 
 Every slot of the time gets a row, also with 0 Wh.
 

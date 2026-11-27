@@ -522,6 +522,7 @@ Gaps between this document and the repository:
 - **Old databases.** Databases written before the `daily_reset` gap fix (pvmon stopped over midnight) keep 0 Wh slots in the night that look measured. They also keep the energy of the night after the restart. Only `data exclude` (not built) can correct them.
 - **Old gap flags.** Databases written before counter gaps became `estimated` keep `gap` on those buckets. Their days stay incomplete until a `backfill` (not built) rewrites them.
 - **Old estimates.** Databases written before outages were told apart from slow cycles flag `estimated` after every failed poll and restart. Their coarse counter steps are spread evenly, and they keep 0 Wh slots before the first poll of a daily counter. A `backfill` (not built) can reshape them from `b15_gauge`.
+- **Reset in the middle of a slot.** The first slot of a reset booking is split by time only (`shortcut:` in `collector.Shape.Weights`). When the power changes around the reset, energy moves to the next slot (about 140 Wh in the simulation, `PVMON_SIM_SEED=5` and `14`, `clock late`). The total is exact.
 - **Restarts in short windows.** A pending daily reset is not persisted. A restart before the reset is confirmed, after the new day passed the old value, loses the old value.
 - **Fast climb after a reset.** A new day that reaches the old value in one reading counts as a glitch.
 - **Reports.** The data-quality section does not list device changes in the period, because no device history is stored.

@@ -46,18 +46,36 @@ func (r *deviceRun) bookCounters(b *booking) {
 
 // bookDelta books a counter delta, shaped by the meter's power where it covers the span.
 func (r *deviceRun) bookDelta(b *booking, cp counterPlan, d Delta, base *float64) {
-	e := Energy{Wh: d.Wh, From: b.from[cp.ref], To: b.at, Flags: flagsOf(d), Counter: base}
+	from := b.from[cp.ref]
+	if s, ok := r.shapes[cp.ref]; !ok || !s.covers(from) {
+		from = r.spreadFrom(b, cp.ref, d)
+	}
+	e := Energy{Wh: d.Wh, From: from, To: b.at, Flags: flagsOf(d), Counter: base}
 	if d.Wh == 0 {
 		// The slots up to the last booking have their rows; write only what changed.
 		e.From = maxTime(e.From, r.booked[cp.ref])
 	}
 	var w map[int64]float64
 	if s, ok := r.shapes[cp.ref]; ok {
-		w = s.Weights(e.From)
+		w = s.Weights(e.From, e.Wh)
 	}
 	b.acc.AddShaped(r.ids[*cp.book], e, w)
 	r.booked[cp.ref] = b.at
 	r.markEstimated(b, cp.ref, e.From, *cp.book)
+}
+
+// spreadFrom is where an even spread of delta d starts. Without power, nothing tells when
+// the energy of an outage or an earlier run flowed since the base, but the counter stood
+// still while it was read. A reset is placed by its group instead.
+func (r *deviceRun) spreadFrom(b *booking, x ref, d Delta) time.Time {
+	from := b.from[x]
+	if d.ResetSeen {
+		return from
+	}
+	if !b.gapFrom[x].IsZero() {
+		from = maxTime(from, b.gapFrom[x])
+	}
+	return maxTime(from, r.read[x])
 }
 
 // markEstimated flags the slots from the outage start to this poll estimated: there the
@@ -118,7 +136,7 @@ func (r *deviceRun) bookShares(b *booking) {
 				w = weights[i] / total
 			}
 			b.acc.AddEnergy(r.ids[sp.series], Energy{
-				Wh: d.Wh * w, From: b.from[of], To: b.at,
+				Wh: d.Wh * w, From: r.spreadFrom(b, of, d), To: b.at,
 				Flags: flagsOf(d) | storage.FlagEstimated,
 			})
 		}

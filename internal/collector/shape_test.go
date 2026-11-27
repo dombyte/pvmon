@@ -12,24 +12,24 @@ func TestShapeIntegratesOneDirection(t *testing.T) {
 	t.Parallel()
 	t0 := time.Date(2026, 11, 19, 12, 0, 0, 0, time.UTC)
 	s := NewShape(-1) // e.g. battery energy_in: negative power charges
-	assert.Nil(t, s.Weights(t0), "nothing covered yet")
+	assert.Nil(t, s.Weights(t0, 0), "nothing covered yet")
 	s.Add(-1000, t0)
 	s.Add(-1000, t0) // same instant: ignored
 	s.Add(-1000, t0.Add(30*time.Minute))
 	s.Add(500, t0.Add(45*time.Minute)) // discharging: trapezoid of the clipped part
-	w := s.Weights(t0)
+	w := s.Weights(t0, 0)
 	require.NotNil(t, w)
 	assert.InDelta(t, 250, w[Slot(t0)], 1e-9)
 	assert.InDelta(t, 250, w[Slot(t0.Add(15*time.Minute))], 1e-9)
 	assert.InDelta(t, 125, w[Slot(t0.Add(30*time.Minute))], 1e-9, "1 kW → 0 W over 15 min")
-	assert.Nil(t, s.Weights(t0.Add(-time.Minute)), "the span before the shape is unknown")
-	late := s.Weights(t0.Add(10 * time.Minute))
+	assert.Nil(t, s.Weights(t0.Add(-time.Minute), 0), "the span before the shape is unknown")
+	late := s.Weights(t0.Add(10*time.Minute), 0)
 	assert.InDelta(t, 250.0/3, late[Slot(t0)], 1e-9, "5 of the 15 covered minutes")
 	assert.InDelta(t, 250, late[Slot(t0.Add(15*time.Minute))], 1e-9)
-	assert.InDelta(t, 250, s.Weights(t0)[Slot(t0)], 1e-9, "the shape itself is unchanged")
+	assert.InDelta(t, 250, s.Weights(t0, 0)[Slot(t0)], 1e-9, "the shape itself is unchanged")
 	s.Cut(t0.Add(45 * time.Minute))
-	assert.Empty(t, s.Weights(t0.Add(45*time.Minute)))
-	assert.Nil(t, s.Weights(t0), "a cut forgets the old span")
+	assert.Empty(t, s.Weights(t0.Add(45*time.Minute), 0))
+	assert.Nil(t, s.Weights(t0, 0), "a cut forgets the old span")
 }
 
 func TestAddShaped(t *testing.T) {
