@@ -22,7 +22,8 @@ func methodPage(d *doc, r report.Report, m Meta) {
 			t.s("method.ratio"), t.s("method.balance"),
 		}},
 		{t.s("method.estimates"), []string{
-			t.s("method.solar_share"), t.s("method.grid_charge"), t.s("method.loadpoint"),
+			t.s("method.grid_charge"), t.s("method.loadpoint"),
+			t.s("method.house"),
 			t.s("method.sources"), t.s("method.fallback"),
 		}},
 		{t.s("method.rules"), []string{

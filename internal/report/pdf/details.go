@@ -80,7 +80,11 @@ func batterySection(d *doc, r report.Report) {
 	}
 	rows := make([][]string, len(r.Batteries.Meters))
 	for i, m := range r.Batteries.Meters {
-		rows[i] = []string{m.Label, t.kwhOf(m.In), t.kwhOf(m.Out), ratio(t, m.Ratio)}
+		quotient := noValue // the rows above say from how many days there is one
+		if m.Ratio != nil {
+			quotient = ratio(t, m.Ratio)
+		}
+		rows[i] = []string{m.Label, t.kwhOf(m.In), t.kwhOf(m.Out), quotient}
 	}
 	d.grid([]float64{0, 0.4, 0.6, 0.8, 1}, []string{
 		t.s("battery"),
@@ -109,6 +113,7 @@ func pvSection(d *doc, s *report.Section) {
 
 func loadpointSection(d *doc, lp *report.Loadpoints) {
 	t := d.t
+	d.keep(len(lp.Meters) + len(lp.Categories) + 1)
 	d.heading(t.s("loadpoints"))
 	var rows [][]string
 	for _, m := range lp.Meters {
@@ -124,6 +129,15 @@ func loadpointSection(d *doc, lp *report.Loadpoints) {
 		rows = append(rows, []string{
 			t.s("sum"), t.s("cat." + c.Category), t.kwhOf(c.In),
 			t.kwhOf(c.Solar), t.pct(c.SolarShare),
+		})
+	}
+	if lp.House != nil {
+		solar := "–"
+		if lp.HouseSolarShare != nil {
+			solar = t.kwhOf(lp.HouseSolar)
+		}
+		rows = append(rows, []string{
+			t.s("house"), "–", t.kwhOf(*lp.House), solar, t.pct(lp.HouseSolarShare),
 		})
 	}
 	d.grid([]float64{0, 0.3, 0.5, 0.67, 0.84, 1}, []string{

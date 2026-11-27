@@ -12,12 +12,14 @@ describe('energyRows', () => {
       'site/grid_out',
       'site/battery_in',
       'site/battery_out',
+      'site/house_rest',
       'site/loadpoints/wallbox',
       'site/self_sufficiency',
       'site/self_consumption',
     ])
     expect(energyRows(r4).find((r) => r.name === 'site/loadpoints/wallbox')?.labelKey).toBe('roles.wallbox')
     expect(energyRows(pvGrid).map((r) => r.name)).not.toContain('site/battery_in')
+    expect(energyRows(pvGrid).map((r) => r.name)).not.toContain('site/house_rest')
     expect(energyRows(r1).map((r) => r.name)).toContain('site/battery_out')
   })
 

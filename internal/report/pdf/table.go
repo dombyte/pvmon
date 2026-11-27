@@ -14,6 +14,9 @@ type column struct {
 
 // tablePages lists every bucket with the site quantities, continued on further pages.
 func tablePages(d *doc, r report.Report) {
+	if len(r.Buckets) < minBuckets {
+		return // the summary tiles already show the only row
+	}
 	t := d.t
 	d.pageTitle(t.s("table." + r.Granularity.String()))
 	cols := columns(t, r.Layout)
@@ -44,7 +47,8 @@ func columns(t tr, l report.Layout) []column {
 	}
 	var cols []column
 	if l.HasPV() {
-		cols = append(cols, energy("fig.pv", func(e report.Energy) float64 { return e.PV }))
+		// the short label leaves a gap to "Consumption"
+		cols = append(cols, energy("column.pv", func(e report.Energy) float64 { return e.PV }))
 	}
 	cols = append(cols,
 		energy("fig.consumption", func(e report.Energy) float64 { return e.Consumption }),
@@ -60,9 +64,9 @@ func columns(t tr, l report.Layout) []column {
 	}})
 }
 
-// edges gives the period column 22 % and splits the rest evenly.
+// edges gives the period column 16 % and splits the rest evenly.
 func edges(n int) []float64 {
-	const first = 0.22
+	const first = 0.16
 	out := []float64{0, first}
 	for i := 1; i <= n; i++ {
 		out = append(out, first+(1-first)*float64(i)/float64(n))
@@ -93,10 +97,7 @@ func bucketLabel(t tr, b report.Bucket, g report.Granularity) string {
 func (d *doc) gridSmall(edges []float64, header []string, rows [][]string) {
 	t := table{edges: edges, face: fontSemiBold, size: sizeSmall, rowH: rowH}
 	head := func() {
-		t.face = fontSemiBold
-		t.row(d, d.y, header, nil)
-		d.y += rowH
-		d.rule(d.y, hex(colorInk), lineThin)
+		t.header(d, header)
 		t.face = fontRegular
 	}
 	head()

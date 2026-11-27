@@ -233,13 +233,52 @@ func (t table) row(d *doc, y float64, cells []string, colors []uint32) {
 	}
 }
 
+// header writes the bold header row with its rule at the cursor. A label wider than its
+// column breaks at a space or after a hyphen; all labels then end on the same line.
+func (t table) header(d *doc, cells []string) {
+	t.face = fontSemiBold
+	d.font(t.face, t.size, hex(colorInk))
+	lines := make([][]string, len(cells))
+	deepest := 1
+	for i, s := range cells {
+		lines[i] = d.headerLines(s, (t.edges[i+1]-t.edges[i])*contentW-gapL)
+		deepest = max(deepest, len(lines[i]))
+	}
+	for n := range deepest {
+		row := make([]string, len(cells))
+		for i, l := range lines {
+			if k := n - deepest + len(l); k >= 0 {
+				row[i] = l[k]
+			}
+		}
+		t.row(d, d.y+float64(n)*noteLineH, row, nil)
+	}
+	d.y += t.rowH + float64(deepest-1)*noteLineH
+	d.rule(d.y, hex(colorInk), lineThin)
+}
+
+// headerLines splits a label that does not fit into maxW in the current font.
+func (d *doc) headerLines(s string, maxW float64) []string {
+	if s == "" || d.width(s) <= maxW {
+		return []string{s}
+	}
+	lines := d.wrap(strings.ReplaceAll(s, "-", "- "), maxW)
+	for i := range lines {
+		lines[i] = strings.ReplaceAll(lines[i], "- ", "-")
+	}
+	return lines
+}
+
+// keep starts a new page unless a section heading and a table of n rows fit.
+func (d *doc) keep(n int) {
+	d.need(headingH + gapM + rowH*float64(n+1))
+}
+
 // grid draws a table with a header row and returns nothing; rows break onto new pages.
 func (d *doc) grid(edges []float64, header []string, rows [][]string) {
 	t := table{edges: edges, face: fontSemiBold, size: sizeBody, rowH: rowH}
 	d.need(rowH * half)
-	t.row(d, d.y, header, nil)
-	d.y += rowH
-	d.rule(d.y, hex(colorInk), lineThin)
+	t.header(d, header)
 	t.face = fontRegular
 	for _, r := range rows {
 		d.need(rowH)

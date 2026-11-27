@@ -123,8 +123,11 @@ type ReportMeter struct {
 
 // LoadpointsModel lists loadpoints and their categories.
 type LoadpointsModel struct {
-	Meters     []ReportMeter `json:"meters"`
-	Categories []ReportMeter `json:"categories"`
+	HouseSolarKWh *float64      `json:"house_solar_est_kwh"`
+	HouseSolarPct *float64      `json:"house_solar_pct"`
+	HouseKWh      *float64      `json:"house_kwh"`
+	Meters        []ReportMeter `json:"meters"`
+	Categories    []ReportMeter `json:"categories"`
 }
 
 // ProfileModel is the load profile: mean W per 15-minute slot of day, peak 15-min mean.

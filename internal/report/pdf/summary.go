@@ -15,14 +15,19 @@ const (
 	splitBarH   = 14.0
 	headerLineH = 15.0
 	maxTicks    = 12
+	// minBuckets is the number of periods from which charts and the table say more than
+	// the key figures.
+	minBuckets = 2
 )
 
 func summaryPage(d *doc, r report.Report, m Meta) {
 	d.newPage()
 	header(d, r, m)
 	keyFigures(d, r)
-	energyChart(d, r)
-	gridChart(d, r)
+	if len(r.Buckets) >= minBuckets {
+		energyChart(d, r)
+		gridChart(d, r)
+	}
 	splits(d, r)
 	summaryNotes(d, r)
 }
@@ -54,9 +59,18 @@ func keyFigures(d *doc, r report.Report) {
 		if col == 0 && i > 0 {
 			d.y += tileH + tileGap
 		}
-		drawTile(d, box{marginX + float64(col)*(w+tileGap), d.y, w, tileH}, f, r.Comparison)
+		b := box{marginX + float64(col)*(w+tileGap), d.y, w, tileH}
+		drawTile(d, b, f, comparedWith(r.Comparison))
 	}
 	d.y += tileH + sectionGap
+}
+
+// comparedWith returns c, or nil when the two periods have no day to compare.
+func comparedWith(c *report.Comparison) *report.Comparison {
+	if c == nil || (c.Matched && c.MatchedDays == 0) {
+		return nil
+	}
+	return c
 }
 
 func drawTile(d *doc, b box, f report.Figure, c *report.Comparison) {

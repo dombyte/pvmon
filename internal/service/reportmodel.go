@@ -119,7 +119,10 @@ func sectionModels(s *report.Section) []ReportMeter {
 }
 
 func loadpointsModel(lp *report.Loadpoints) *LoadpointsModel {
-	out := &LoadpointsModel{Meters: sectionModels(&lp.Section)}
+	out := &LoadpointsModel{Meters: sectionModels(&lp.Section), HouseKWh: kwhp(lp.House)}
+	if lp.HouseSolarShare != nil {
+		out.HouseSolarKWh, out.HouseSolarPct = kwhp(&lp.HouseSolar), pct(lp.HouseSolarShare)
+	}
 	for _, c := range lp.Categories {
 		out.Categories = append(out.Categories, ReportMeter{
 			ID: c.Category, Category: c.Category, CompleteDays: lp.CompleteDays,

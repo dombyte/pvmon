@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { EnergySeries, SiteModel } from '@/api/types'
-import { historyKeys, historySeries, periodPoints, rangeSum } from './points'
+import { chipKeys, historyKeys, historySeries, periodPoints, rangeSum } from './points'
 import { latest } from './range'
 
 const site = (series: string[]) => ({ site_series: series }) as unknown as SiteModel
@@ -28,6 +28,18 @@ describe('history points', () => {
       'site/consumption',
       'site/self_sufficiency',
     ])
+  })
+
+  it('splits the consumption only on a site with loadpoints', () => {
+    const base = ['site/consumption', 'site/house_rest']
+    expect(historyKeys(site(base))).toEqual(['consumption'])
+    expect(historyKeys(site([...base, 'site/loadpoints/wallbox']))).toEqual([
+      'consumption',
+      'house',
+      'wallbox',
+    ])
+    expect(chipKeys(['consumption', 'house', 'wallbox'])).toEqual(['house', 'wallbox'])
+    expect(chipKeys(['consumption'])).toEqual(['consumption'])
   })
 
   it('matches values by period key and sums the range', () => {

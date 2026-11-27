@@ -31,7 +31,7 @@ func TestSummary(t *testing.T) {
 	t.Parallel()
 	d1 := mkDay("2026-06-01", 20000, 10000, 2000, 9000, 4000, 3000, 1000)
 	d2 := mkDay("2026-06-02", 10000, 10000, 4000, 2000, 3000, 2000, 0)
-	d2.Slots = &DaySlots{GridCharge: 500, Solar: map[string]float64{}}
+	d2.Slots = &DaySlots{GridCharge: 500, Solar: map[string]SolarParts{}}
 	incomplete := Day{Date: day("2026-06-03"), Values: map[string]float64{KeyPV: 1}}
 	r := Build(Input{
 		Range: rng("2026-06-01", "2026-06-04"), Layout: full,
@@ -127,7 +127,8 @@ func TestLoadpointsAndProfile(t *testing.T) {
 	}
 	est := EstimateDay(slots, []string{"wb"})
 	require.NotNil(t, est)
-	assert.InDelta(t, 900, est.Solar["wb"], 1e-9)
+	// The 250 Wh import of the evening charge the battery: none of it reaches the wallbox.
+	assert.InDelta(t, 1000, est.Solar["wb"].NotImported, 1e-9)
 	assert.InDelta(t, 250, est.GridCharge, 1e-9)
 	assert.InDelta(t, 4000, est.Peak, 1e-9)
 	assert.Equal(t, at(12, 0), est.PeakAt)
@@ -146,15 +147,47 @@ func TestLoadpointsAndProfile(t *testing.T) {
 	lp := r.Loadpoints
 	require.NotNil(t, lp)
 	assert.InDelta(t, 2000, lp.Meters[0].In, 1e-9)
-	assert.InDelta(t, 1650, lp.Meters[0].Solar, 1e-9)
-	assert.InDelta(t, 0.825, *lp.Meters[0].SolarShare, 1e-9)
+	assert.InDelta(t, 1750, lp.Meters[0].Solar, 1e-9)
+	assert.InDelta(t, 0.875, *lp.Meters[0].SolarShare, 1e-9)
 	require.Len(t, lp.Categories, 2)
 	assert.Equal(t, "heat", lp.Categories[1].Category)
 	assert.InDelta(t, 300, lp.Categories[1].Solar, 1e-9)
+	house := d1.Values[KeyConsumption] + d2.Values[KeyConsumption] - lp.Meters[0].In - lp.Meters[1].In
+	assert.InDelta(t, house, *lp.House, 1e-9)
+	// Consumption solar 1500 (slots) + 1500 (daily balance) − loadpoints 2050.
+	assert.InDelta(t, 950, lp.HouseSolar, 1e-9)
+	assert.InDelta(t, 950/house, *lp.HouseSolarShare, 1e-9)
+	d2.Values[MeterKey(KeyLoadpoint, "hp")] = 5000 // the meters disagree: House < 0
+	neg := Build(Input{Range: rng("2026-06-01", "2026-06-02"), Layout: l, Days: []Day{d1, d2}})
+	assert.Zero(t, neg.Loadpoints.HouseSolar)
+	assert.Nil(t, neg.Loadpoints.HouseSolarShare)
 	assert.InDelta(t, 4000, *r.Profile.Mean[48], 1e-9)
 	assert.InDelta(t, 2000, *r.Profile.Mean[81], 1e-9)
 	assert.Nil(t, r.Profile.Mean[0])
 	assert.InDelta(t, 4000, *r.Profile.Peak, 1e-9)
+}
+
+func TestSolarWithGridCharge(t *testing.T) {
+	t.Parallel()
+	slot := func(cons, imp, chg, dis float64) Slot {
+		return Slot{Values: map[string]float64{
+			KeyConsumption: cons, KeyImport: imp, KeyCharge: chg, KeyDischarge: dis,
+			MeterKey(KeyLoadpoint, "wb"): cons,
+		}}
+	}
+	solar := func(slots ...Slot) float64 {
+		d := mkDay("2026-06-01", 0, 4000, 0, 0, 0, 0, 4000)
+		d.Slots = EstimateDay(slots, []string{"wb"})
+		r := Build(Input{Range: rng("2026-06-01", "2026-06-01"), Layout: full, Days: []Day{d}})
+		return r.Loadpoints.Meters[0].Solar
+	}
+	// Night: 1000 from the grid while 5000 charge from it. Later 8000 from the battery,
+	// 5/8 of which were bought: 3000 of them are solar.
+	assert.InDelta(t, 3000, solar(slot(1000, 6000, 5000, 0), slot(8000, 0, 0, 8000)), 1e-9)
+	// More bought than delivered: the whole battery counts as grid.
+	assert.InDelta(t, 0, solar(slot(0, 5000, 5000, 0), slot(2000, 0, 0, 2000)), 1e-9)
+	// No grid charge: the battery counts as solar.
+	assert.InDelta(t, 1500, solar(slot(2000, 500, 0, 1000)), 1e-9)
 }
 
 func TestComparison(t *testing.T) {

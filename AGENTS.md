@@ -512,7 +512,6 @@ Gaps between this document and the repository:
   - Built: reports (preview, PDF and CSV download), login, first-start setup, settings (app settings, users, API tokens, audit log, configuration overview with export).
   - Built: the setup wizard (SPEC.md section 11.14, steps 2–6: devices with probe and unit ID search, meter proposal, hierarchy, live balance check, saving as one revision).
   - Playwright screenshots and axe cover every built page.
-  - Missing: history does not split loadpoints yet.
   - Missing: the device detail groups channels per meter, not by AC/DC/battery/temperature, and has no netting check yet.
   - Missing: the wizard has no "reverse direction" per meter. pvmon has no config key to flip the sign of a meter.
   - Missing: the wizard has no netting check (step 5). That check needs the daily drift check below.
