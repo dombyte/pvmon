@@ -150,6 +150,29 @@ func TestResetKeepsEnergyInItsPeriod(t *testing.T) {
 	}
 }
 
+// TestResetInsideSlotSplitsByPower: after hours without a counter step a load starts half
+// a minute before the device resets in the middle of a slot. The slot keeps what flowed
+// after the reset, not a share of it by time.
+func TestResetInsideSlotSplitsByPower(t *testing.T) {
+	t.Parallel()
+	const load = 6000.0 // W
+	r := newCoarseRun(t, func(now time.Time) float64 {
+		switch {
+		case now.Before(minutes(22)):
+			return 600 // 220 Wh: 200 on the register, so the reset shows as a drop
+		case now.Before(minutes(126)):
+			return 0
+		}
+		return load
+	})
+	r.l.reset = minutes(126).Add(30 * time.Second)
+	r.session(t, minutes(165))
+	// The 50 Wh before the reset never reached a counter step. One counter step and one
+	// poll of power may lie on either side.
+	after := load * minutes(135).Sub(r.l.reset).Hours()
+	assert.InDelta(t, after, r.slot(t, 120).Wh, 100+load*pollInterval.Hours())
+}
+
 // TestShortFailureIsNotEstimated: one failed poll is a slow cycle, not an outage.
 func TestShortFailureIsNotEstimated(t *testing.T) {
 	t.Parallel()

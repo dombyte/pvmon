@@ -27,6 +27,10 @@ func TestShapeIntegratesOneDirection(t *testing.T) {
 	assert.InDelta(t, 250.0/3, late[Slot(t0)], 1e-9, "5 of the 15 covered minutes")
 	assert.InDelta(t, 250, late[Slot(t0.Add(15*time.Minute))], 1e-9)
 	assert.InDelta(t, 250, s.Weights(t0, 0)[Slot(t0)], 1e-9, "the shape itself is unchanged")
+	s.Pin() // the reading at 12:30 may have started a reset
+	pinned := s.Weights(t0.Add(30*time.Minute), 0)
+	assert.InDelta(t, 125, pinned[Slot(t0.Add(30*time.Minute))], 1e-9,
+		"all of the slot flowed after the pinned reading, not a share by time")
 	s.Cut(t0.Add(45 * time.Minute))
 	assert.Empty(t, s.Weights(t0.Add(45*time.Minute), 0))
 	assert.Nil(t, s.Weights(t0, 0), "a cut forgets the old span")

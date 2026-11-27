@@ -213,6 +213,20 @@ func (r *deviceRun) counterBase(x ref) (*float64, time.Time) {
 	return nil, time.Time{}
 }
 
+// pinResets pins the shapes of every reset group that saw a drop at this poll first.
+func (r *deviceRun) pinResets(at time.Time) {
+	for _, gr := range r.groups {
+		if !gr.g.dropOpened(at) {
+			continue
+		}
+		for _, x := range gr.refs {
+			if s, ok := r.shapes[x]; ok {
+				s.Pin()
+			}
+		}
+	}
+}
+
 // deltas runs every counter tracker for one poll.
 func (r *deviceRun) deltas(vals decoded, at time.Time, gap bool) map[ref]Delta {
 	out := map[ref]Delta{}
