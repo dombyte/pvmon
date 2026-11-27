@@ -5,7 +5,7 @@ version: 2
 vendor: go-e
 models: ["go-eCharger HOMEfix", "go-eCharger HOME+", "go-eCharger Gemini", "go-eCharger Gemini flex"]
 transport: http
-verified: false           # key list official, nrg units unverified; no charging dump yet
+verified: true            # real dump decodes plausibly (not charging); nrg units unverified, fixture pending
 http:
   endpoints:
     - { id: status, url: "/api/status?filter=nrg,eto,wh,car,err,modelStatus" }
