@@ -49,8 +49,7 @@ archives:
     files:
       - LICENSE
       - README.md
-      - src: LICENSES/THIRD_PARTY_NOTICES.md
-        strip_parent: true
+      - LICENSES/THIRD_PARTY_NOTICES.md
 
 changelog:
   sort: asc
@@ -136,6 +135,7 @@ dockers_v2:
       - linux/arm/v7
     dockerfile: Dockerfile.goreleaser
     extra_files:
+      - LICENSE
       - LICENSES/THIRD_PARTY_NOTICES.md
     labels: &oci
       org.opencontainers.image.title: pvmon
