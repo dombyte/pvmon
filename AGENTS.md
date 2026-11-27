@@ -41,6 +41,7 @@ go test -race -tags integration ./...       # real devices, never in CI
 go test -tags simulation -run Simulation ./internal/collector    # in make check, not in CI
 go test -tags simulation -run ProfileSimulation ./internal/collector -profile=<id or file>
 make assets | build | all | docker          # dists; ./pvmon with ldflags; both; dev image
+make docs                                   # Swagger UI for the binary
 make e2e | e2e-update                       # Playwright screenshots + axe in the CI image
 go run ./cmd [-config <path>]               # server (default ./config.yaml)
 go run ./cmd simulate --setup R3            # fake transports for UI work (SPEC.md section 13)
@@ -103,7 +104,7 @@ internal/
   <pkg>/mocks/       mockery-generated (never hand-edit)
 profiles/<vendor>/   built-in YAML profiles (embedded via go:embed); fixtures + golden values next to them
 frontend/            Vue 3 + Vite + Pinia + vue-i18n + Tailwind 4 + @lucide/vue + ECharts
-docs/                user documentation: Swagger UI + openapi.yaml (built to docs/dist, embedded; planned, not yet in the repository)
+docs/                openapi.yaml + Swagger UI (built to docs/dist, embedded)
 example/             docker-compose (TCP, RTU) and config.yaml templates
 .dev/                local development material (gitignored, not part of the project)
 ```
@@ -422,6 +423,12 @@ golangci-lint and goreleaser run as pinned prebuilt binaries (as in solis). They
 | `date-fns` | `Intl.DateTimeFormat` / `Intl.NumberFormat` for formatting; local-date arithmetic in a small helper module (days, months, years only) |
 | chart.js, zustand, radix, react-day-picker (solis) | covered by echarts, pinia and own components |
 
+### Documentation (build only, in `docs/`)
+
+| Package | Version | Released | Why | Alternative considered |
+| --- | --- | --- | --- | --- |
+| `swagger-ui-dist` | 5.36.0 | 2026-11-23 | API reference in the binary, static files | an own API page |
+
 ### Frontend (build and test only)
 
 | Package | Version | Note |
@@ -447,6 +454,7 @@ golangci-lint and goreleaser run as pinned prebuilt binaries (as in solis). They
 - Go: 13 direct runtime modules (6 core + zerolog + timberjack + 5 koanf parts) and about 15 indirect modules (solis: about 60). Tests add testify and mockery.
 - Browser: 7 packages (solis: 20).
 - Build and test: 15 packages.
+- Documentation: 1 package.
 
 ### Logging output
 
@@ -526,7 +534,7 @@ Gaps between this document and the repository:
 - **Fast climb after a reset.** A new day that reaches the old value in one reading counts as a glitch.
 - **Reports.** The data-quality section does not list device changes in the period, because no device history is stored.
 - **Netting `app`.** The daily drift check of coarse counters against the device totals (section 6) is not implemented. Device health `stale` (SPEC.md section 8.2) is not detected yet.
-- **docs/.** Swagger UI and OpenAPI do not exist yet. The dev `Dockerfile` gets its docs stage back with them.
+- **docs/.** The contract test compares routes and paths only. It does not compare the response schemas with the handlers. `docs/openapi.yaml` has no generator. Change it together with the behaviour.
 - **Lint.** `errcheck` and `gosec` in `.golangci.yml` do not flag `Close` and file paths. For this reason, `_ = x.Close()` carries a comment instead of the `//nolint` that section 7 asks for.
 
 ### 12.3 Deviations

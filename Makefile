@@ -16,7 +16,7 @@ build:
 	CGO_ENABLED=0 go build $(BUILD_FLAGS) -o $(BINARY_NAME) ./cmd
 
 # Web assets embedded into the binary; the frontend and the Swagger UI are built with the
-# same version (VITE_APP_VERSION) as the binary. A missing docs/ is skipped until it exists.
+# same version (VITE_APP_VERSION) as the binary.
 .PHONY: frontend
 frontend:
 	@if [ -f frontend/package.json ]; then \
@@ -25,9 +25,7 @@ frontend:
 
 .PHONY: docs
 docs:
-	@if [ -f docs/package.json ]; then \
-		npm --prefix docs ci && VITE_APP_VERSION=$(VERSION) npm --prefix docs run build; \
-	else echo "docs/ has no package.json yet: skipping"; fi
+	npm --prefix docs ci && VITE_APP_VERSION=$(VERSION) npm --prefix docs run build
 
 .PHONY: assets
 assets: frontend docs

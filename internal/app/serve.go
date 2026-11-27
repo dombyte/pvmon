@@ -15,6 +15,7 @@ import (
 
 	"github.com/rs/zerolog"
 
+	"github.com/dombyte/pvmon/docs"
 	"github.com/dombyte/pvmon/frontend"
 	"github.com/dombyte/pvmon/internal/buildinfo"
 	"github.com/dombyte/pvmon/internal/collector"
@@ -291,8 +292,9 @@ func handlers(o ServeOptions, sup *health.Supervisor, d liveDeps, ah router.Auth
 		Devices: deviceHandlers(o, d.st.Read(), sup, log),
 		Health:  handler.NewHealth(hs, log), Version: handler.NewVersion(o.Build, log),
 		Site: handler.NewSite(ss, log), Auth: ah,
-		WS: wsHandler(d, log),
-		UI: handler.NewStatic(frontend.FS(), log),
+		WS:   wsHandler(d, log),
+		Docs: handler.NewDocs(docs.FS()),
+		UI:   handler.NewStatic(frontend.FS(), log),
 	}
 }
 

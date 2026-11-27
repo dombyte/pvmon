@@ -1,0 +1,1176 @@
+openapi: 3.0.3
+info:
+  title: pvmon API
+  version: dev # the docs build replaces this with the pvmon version
+  license: { name: MIT, url: "https://github.com/dombyte/pvmon/blob/main/LICENSE" }
+  description: |
+    The REST API of pvmon gives the site model, history, reports and administration.
+    Live values come from the WebSocket `/ws`. OpenAPI cannot describe it. Refer to the
+    [WebSocket reference](https://dombyte.github.io/pvmon/reference/websocket.html).
+
+    **Access.** The summary of each operation shows its access level:
+
+    - `open`: no login is necessary.
+    - `read`: no login is necessary if `auth.public_read` is `true`.
+    - `admin`: a session or an API token is necessary.
+
+    A script sends the header `Authorization: Bearer <token>`.
+
+    **Times** are in RFC 3339 format. Day parameters also accept local dates
+    (`YYYY-MM-DD`, server time zone `TZ`).
+
+    **Missing data** is `null`, not `0`.
+externalDocs:
+  description: pvmon documentation
+  url: https://dombyte.github.io/pvmon/
+servers:
+  - url: /
+    description: This pvmon instance
+tags:
+  - { name: System, description: Health and version. }
+  - { name: Site, description: "Site model, energy, power history and reports." }
+  - { name: Devices, description: Devices and their status. }
+  - { name: Authentication, description: "Login, logout and first-start setup." }
+  - { name: Administration, description: "Users, API tokens and the audit log." }
+  - { name: Configuration, description: The configuration of the UI layer. }
+
+paths:
+  /health:
+    get:
+      tags: [System]
+      operationId: getHealth
+      summary: Health snapshot (open)
+      security: []
+      responses:
+        "200":
+          description: "The status is `ok` or `degraded`."
+          content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } }
+        "503":
+          description: A necessary part failed, or a critical meter is offline too long.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } }
+  /api/v1/version:
+    get:
+      tags: [System]
+      operationId: getVersion
+      summary: Build information (open)
+      security: []
+      responses:
+        "200":
+          description: The version.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Version" } } }
+
+  /api/v1/site:
+    get:
+      tags: [Site]
+      operationId: getSite
+      summary: Site model (read)
+      security: [{}, { session: [] }, { token: [] }]
+      responses:
+        "200":
+          description: Capabilities, meters, devices and site series.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Site" } } }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/energy:
+    get:
+      tags: [Site]
+      operationId: getEnergy
+      summary: Energy per period (read)
+      description: >-
+        Gives the energy of series and site quantities. For the level `day`, the maximum
+        range is 3660 days. For the level `bucket`, the maximum is 10000 buckets.
+      security: [{}, { session: [] }, { token: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/series" }
+        - name: level
+          in: query
+          required: true
+          schema: { type: string, enum: [bucket, day, month, year, total] }
+        - name: from
+          in: query
+          description: First day. You can omit it only for the level `total`.
+          schema: { type: string, example: "2026-11-01" }
+        - name: to
+          in: query
+          description: Last day. You can omit it only for the level `total`.
+          schema: { type: string, example: "2026-11-18" }
+      responses:
+        "200":
+          description: One list of periods for each series.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Energy" } } }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/gauge:
+    get:
+      tags: [Site]
+      operationId: getGauge
+      summary: 15-minute average, minimum and maximum (read)
+      security: [{}, { session: [] }, { token: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/series" }
+        - name: from
+          in: query
+          required: true
+          schema: { type: string, example: "2026-11-18" }
+        - name: to
+          in: query
+          required: true
+          schema: { type: string, example: "2026-11-18" }
+      responses:
+        "200":
+          description: The list contains a slot only if each part has data.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Gauge" } } }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/report:
+    get:
+      tags: [Site]
+      operationId: getReport
+      summary: Report as JSON, CSV or PDF (read)
+      description: >-
+        Days are local dates. The maximum range is 3660 days. If the range ends today, the
+        report ends yesterday. A range that contains only today gives the error 400.
+      security: [{}, { session: [] }, { token: [] }]
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: compare
+          in: query
+          schema: { type: string, enum: [last_year, previous, none] }
+        - name: granularity
+          in: query
+          description: Size of the buckets. Without it, pvmon selects the size from the range.
+          schema: { type: string, enum: [day, month, year] }
+        - name: format
+          in: query
+          schema: { type: string, enum: [json, csv, pdf], default: json }
+        - name: lang
+          in: query
+          description: Language of the PDF.
+          schema: { type: string, enum: [de, en], default: en }
+      responses:
+        "200":
+          description: The report. CSV and PDF are file downloads.
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/Report" } }
+            text/csv: { schema: { type: string } }
+            application/pdf: { schema: { type: string, format: binary } }
+        default: { $ref: "#/components/responses/Error" }
+
+  /api/v1/devices:
+    get:
+      tags: [Devices]
+      operationId: listDevices
+      summary: All devices (read)
+      security: [{}, { session: [] }, { token: [] }]
+      responses:
+        "200":
+          description: Every device with its state.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [devices]
+                properties:
+                  devices: { type: array, items: { $ref: "#/components/schemas/Device" } }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/devices/{id}:
+    get:
+      tags: [Devices]
+      operationId: getDevice
+      summary: One device with its channels (read)
+      security: [{}, { session: [] }, { token: [] }]
+      parameters: [{ $ref: "#/components/parameters/deviceID" }]
+      responses:
+        "200":
+          description: The device.
+          content: { application/json: { schema: { $ref: "#/components/schemas/DeviceDetail" } } }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/devices/{id}/status:
+    get:
+      tags: [Devices]
+      operationId: getDeviceStatus
+      summary: Status changes of a device (read)
+      description: >-
+        The list starts with the newest change and contains at most 1000 changes. Then it
+        gives the change of each register that was active at `start`. The default range is
+        the last 90 days. The register `@connection` shows the connection.
+      security: [{}, { session: [] }, { token: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/deviceID" }
+        - { $ref: "#/components/parameters/start" }
+        - { $ref: "#/components/parameters/end" }
+      responses:
+        "200":
+          description: The changes.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events]
+                properties:
+                  events: { type: array, items: { $ref: "#/components/schemas/StatusEvent" } }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/status:
+    get:
+      tags: [Devices]
+      operationId: getStatus
+      summary: Status level of every device over time (read)
+      description: >-
+        The list starts with the oldest entry. It has an entry only where the level
+        changes. The first entry is the level that was active at `start`.
+      security: [{}, { session: [] }, { token: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/start" }
+        - { $ref: "#/components/parameters/end" }
+      responses:
+        "200":
+          description: One list of changes for each device.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [devices]
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, changes]
+                      properties:
+                        id: { type: string }
+                        changes:
+                          type: array
+                          items:
+                            type: object
+                            required: [at, level]
+                            properties:
+                              at: { type: string, format: date-time }
+                              level: { type: string, enum: [ok, notice, fault, offline, none] }
+        default: { $ref: "#/components/responses/Error" }
+
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      operationId: login
+      summary: Log in and get a session cookie (open)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, password]
+              properties:
+                name: { type: string }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Logged in. Sets the cookie `pvmon_session`.
+          content: { application/json: { schema: { $ref: "#/components/schemas/UserBody" } } }
+        "401": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      operationId: logout
+      summary: End the session (session)
+      security: [{ session: [] }]
+      responses:
+        "204": { description: Logged out. }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/auth/me:
+    get:
+      tags: [Authentication]
+      operationId: getMe
+      summary: The caller and the setup state (open)
+      security: [{}, { session: [] }, { token: [] }]
+      responses:
+        "200":
+          description: "Without a login, `user` is null."
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user, setup_required, public_read]
+                properties:
+                  user:
+                    type: object
+                    nullable: true
+                    properties:
+                      id: { type: integer, format: int64 }
+                      name: { type: string }
+                      via: { type: string, enum: [session, token] }
+                  setup_required: { type: boolean }
+                  public_read: { type: boolean }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/setup:
+    post:
+      tags: [Authentication]
+      operationId: setup
+      summary: Create the first admin (open only if no user exists)
+      description: You must send the setup code from the startup log.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name, password]
+              properties:
+                code: { type: string }
+                name: { type: string }
+                password: { type: string, format: password, minLength: 12 }
+                lang: { type: string, enum: [de, en] }
+      responses:
+        "201":
+          description: Created and logged in.
+          content: { application/json: { schema: { $ref: "#/components/schemas/UserBody" } } }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        default: { $ref: "#/components/responses/Error" }
+
+  /api/v1/users:
+    get:
+      tags: [Administration]
+      operationId: listUsers
+      summary: All admin accounts (admin)
+      security: [{ session: [] }, { token: [] }]
+      responses:
+        "200":
+          description: The users.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [users]
+                properties:
+                  users: { type: array, items: { $ref: "#/components/schemas/User" } }
+        default: { $ref: "#/components/responses/Error" }
+    post:
+      tags: [Administration]
+      operationId: addUser
+      summary: Add an admin account (admin)
+      security: [{ session: [] }, { token: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, password]
+              properties:
+                name: { type: string }
+                password: { type: string, format: password, minLength: 12 }
+                lang: { type: string, enum: [de, en] }
+      responses:
+        "201":
+          description: Created.
+          content: { application/json: { schema: { $ref: "#/components/schemas/UserBody" } } }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/users/{id}:
+    delete:
+      tags: [Administration]
+      operationId: deleteUser
+      summary: Delete an admin account (admin)
+      description: You cannot delete the last user. This gives the error 409.
+      security: [{ session: [] }, { token: [] }]
+      parameters: [{ $ref: "#/components/parameters/userID" }]
+      responses:
+        "204": { description: Deleted. }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/users/{id}/password:
+    put:
+      tags: [Administration]
+      operationId: setPassword
+      summary: Set a password (admin)
+      description: This also stops all sessions of the user.
+      security: [{ session: [] }, { token: [] }]
+      parameters: [{ $ref: "#/components/parameters/userID" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, format: password, minLength: 12 }
+      responses:
+        "204": { description: Changed. }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/tokens:
+    get:
+      tags: [Administration]
+      operationId: listTokens
+      summary: All API tokens (admin)
+      security: [{ session: [] }, { token: [] }]
+      responses:
+        "200":
+          description: The tokens without their secrets.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tokens]
+                properties:
+                  tokens: { type: array, items: { $ref: "#/components/schemas/Token" } }
+        default: { $ref: "#/components/responses/Error" }
+    post:
+      tags: [Administration]
+      operationId: createToken
+      summary: Create an API token (admin)
+      description: Only this response contains the token. Keep it.
+      security: [{ session: [] }, { token: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                expires_days: { type: integer, description: "With 0 or without this field, the token does not expire." }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/Token" }
+                  - type: object
+                    required: [token]
+                    properties:
+                      token: { type: string, example: "pvm_<id>_<secret>" }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/tokens/{id}:
+    delete:
+      tags: [Administration]
+      operationId: revokeToken
+      summary: Revoke an API token (admin)
+      security: [{ session: [] }, { token: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Revoked. }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/audit:
+    get:
+      tags: [Administration]
+      operationId: getAudit
+      summary: Audit log (admin)
+      description: >-
+        The list starts with the newest entry and contains at most 1000 entries. The default
+        range is the last 30 days.
+      security: [{ session: [] }, { token: [] }]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - name: to
+          in: query
+          description: The range includes this day.
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: The entries.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [entries]
+                properties:
+                  entries: { type: array, items: { $ref: "#/components/schemas/AuditEntry" } }
+        default: { $ref: "#/components/responses/Error" }
+
+  /api/v1/config:
+    get:
+      tags: [Configuration]
+      operationId: getConfig
+      summary: All objects and UI settings (admin)
+      security: [{ session: [] }, { token: [] }]
+      responses:
+        "200":
+          description: The effective configuration.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Config" } } }
+        default: { $ref: "#/components/responses/Error" }
+    put:
+      tags: [Configuration]
+      operationId: putConfig
+      summary: Change several objects as one revision (admin)
+      description: pvmon examines the full configuration before it saves the changes.
+      security: [{ session: [] }, { token: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [objects]
+              properties:
+                objects: { type: array, items: { $ref: "#/components/schemas/Change" } }
+      responses:
+        "200":
+          description: The new configuration.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Config" } } }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/config/probe:
+    post:
+      tags: [Configuration]
+      operationId: probeDevice
+      summary: Read a device once with draft changes (admin)
+      description: >-
+        pvmon does not save the draft. If the device does not answer, the status is 200
+        and the field `error` is set. An incorrect draft gives the status 422.
+      security: [{ session: [] }, { token: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device]
+              properties:
+                objects: { type: array, items: { $ref: "#/components/schemas/Change" } }
+                device: { type: string }
+      responses:
+        "200":
+          description: The values of every meter block.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Probe" } } }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/config/settings:
+    get:
+      tags: [Configuration]
+      operationId: getSettings
+      summary: UI settings (admin)
+      security: [{ session: [] }, { token: [] }]
+      responses:
+        "200":
+          description: The settings.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Settings" } } }
+        default: { $ref: "#/components/responses/Error" }
+    put:
+      tags: [Configuration]
+      operationId: putSettings
+      summary: Change UI settings (admin)
+      description: The value `null` removes the key from the UI layer.
+      security: [{ session: [] }, { token: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              example: { "site.name": "Home", "status.offline_after": "15m" }
+      responses:
+        "200":
+          description: The new settings.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Settings" } } }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/config/export:
+    get:
+      tags: [Configuration]
+      operationId: exportConfig
+      summary: Configuration as YAML, secrets masked (admin)
+      security: [{ session: [] }, { token: [] }]
+      responses:
+        "200":
+          description: The download `config.yaml`.
+          content: { application/yaml: { schema: { type: string } } }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/config/{kind}/{id}:
+    parameters:
+      - name: kind
+        in: path
+        required: true
+        schema: { type: string, enum: [connection, device, meter] }
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Configuration]
+      operationId: getObject
+      summary: One object (admin)
+      security: [{ session: [] }, { token: [] }]
+      responses:
+        "200":
+          description: The object.
+          content: { application/json: { schema: { $ref: "#/components/schemas/ObjectBody" } } }
+        default: { $ref: "#/components/responses/Error" }
+    put:
+      tags: [Configuration]
+      operationId: putObject
+      summary: Create or change an object (admin)
+      description: >-
+        The body has the same structure as the object in `config.yaml`. The response shows
+        each secret as `***`. If you send `***`, pvmon keeps the stored secret.
+      security: [{ session: [] }, { token: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+            examples:
+              device: { value: { connection: lan-solis, unit: 1, profile: solis/s6-hybrid } }
+      responses:
+        "200":
+          description: The stored object.
+          content: { application/json: { schema: { $ref: "#/components/schemas/ObjectBody" } } }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        default: { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [Configuration]
+      operationId: deleteObject
+      summary: Delete an object (admin)
+      security: [{ session: [] }, { token: [] }]
+      responses:
+        "204": { description: Deleted. }
+        default: { $ref: "#/components/responses/Error" }
+  /api/v1/profiles:
+    get:
+      tags: [Configuration]
+      operationId: listProfiles
+      summary: Built-in profiles (admin)
+      security: [{ session: [] }, { token: [] }]
+      responses:
+        "200":
+          description: The profiles.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [profiles]
+                properties:
+                  profiles: { type: array, items: { $ref: "#/components/schemas/Profile" } }
+        default: { $ref: "#/components/responses/Error" }
+
+components:
+  securitySchemes:
+    session: { type: apiKey, in: cookie, name: pvmon_session }
+    token: { type: http, scheme: bearer, description: "API token `pvm_<id>_<secret>`." }
+  parameters:
+    series:
+      name: series
+      in: query
+      required: true
+      description: 1 to 64 series names, separated by commas. `GET /api/v1/site` lists them.
+      schema: { type: string, example: "site/pv,site/consumption" }
+    deviceID: { name: id, in: path, required: true, schema: { type: string } }
+    userID:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    start:
+      name: start
+      in: query
+      description: RFC 3339 time or local date.
+      schema: { type: string }
+    end:
+      name: end
+      in: query
+      description: RFC 3339 time or local date (inclusive).
+      schema: { type: string }
+  responses:
+    Error:
+      description: An error. The values of `code` do not change between versions.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    RateLimited:
+      description: Too many failed attempts.
+      headers:
+        Retry-After: { description: Seconds to wait., schema: { type: integer } }
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+  schemas:
+    Error:
+      type: object
+      required: [error, code, message]
+      properties:
+        error: { type: string, example: Bad Request }
+        code:
+          type: string
+          enum: [invalid_param, invalid_range, range_too_long, unknown_series, not_found,
+            unauthorized, forbidden, csrf, rate_limited, locked_by_file, validation_failed,
+            conflict, internal]
+        message: { type: string }
+        details: { type: array, items: { $ref: "#/components/schemas/Problem" } }
+    Problem:
+      type: object
+      required: [path, message]
+      properties:
+        path: { type: string, example: meters.grid.device }
+        message: { type: string }
+    Health:
+      type: object
+      required: [status, components, devices]
+      properties:
+        status: { type: string }
+        components:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              state: { type: string }
+              restarts: { type: integer }
+              last_beat: { type: string, format: date-time }
+        devices:
+          type: object
+          nullable: true
+          additionalProperties: { type: string }
+    Version:
+      type: object
+      required: [version, commit, build_date, go]
+      properties:
+        version: { type: string }
+        commit: { type: string }
+        build_date: { type: string }
+        go: { type: string }
+    Site:
+      type: object
+      required: [name, tz, config_rev, data_since, capabilities, meters, devices, site_series]
+      properties:
+        name: { type: string }
+        tz: { type: string, example: Europe/Berlin }
+        config_rev: { type: integer, format: int64 }
+        data_since: { type: string, format: date, nullable: true }
+        capabilities:
+          type: object
+          properties:
+            pv: { type: integer }
+            battery: { type: integer }
+            grid: { type: boolean }
+            backup: { type: boolean }
+            loadpoints: { type: object, additionalProperties: { type: integer } }
+        meters:
+          type: array
+          items:
+            type: object
+            required: [id, role, label, device, series]
+            properties:
+              id: { type: string }
+              role: { type: string, enum: [pv, grid, battery, consumer, backup, inverter] }
+              category: { type: string, enum: [wallbox, heatpump, heater, other] }
+              label: { type: string }
+              device: { type: string }
+              parent: { type: string }
+              capacity_wh: { type: number }
+              kwp: { type: number }
+              series: { type: array, items: { type: string } }
+        devices:
+          type: array
+          items:
+            type: object
+            required: [id, profile, verified, state]
+            properties:
+              id: { type: string }
+              profile: { type: string }
+              verified: { type: boolean }
+              state: { type: string }
+        site_series: { type: array, items: { type: string } }
+    Energy:
+      type: object
+      required: [series]
+      properties:
+        series:
+          type: array
+          items:
+            type: object
+            required: [name, unit, values]
+            properties:
+              name: { type: string }
+              unit: { type: string, enum: [Wh, "%"] }
+              values: { type: array, items: { $ref: "#/components/schemas/EnergyValue" } }
+    EnergyValue:
+      type: object
+      description: A series with the unit `Wh` has `wh`. A ratio series has `pct`.
+      required: [period, complete, estimated, missing_days, missing]
+      properties:
+        period: { type: string }
+        wh: { type: number, nullable: true }
+        pct: { type: number, nullable: true }
+        complete: { type: boolean }
+        estimated: { type: boolean }
+        missing_days: { type: integer }
+        missing: { type: array, items: { type: string } }
+    Gauge:
+      type: object
+      required: [series]
+      properties:
+        series:
+          type: array
+          items:
+            type: object
+            required: [name, unit, points]
+            properties:
+              name: { type: string }
+              unit: { type: string }
+              points:
+                type: array
+                items:
+                  type: object
+                  required: [at, avg, min, max, cover]
+                  properties:
+                    at: { type: string, format: date-time, description: Slot start. }
+                    avg: { type: number }
+                    min: { type: number }
+                    max: { type: number }
+                    cover: { type: integer, description: Covered seconds. }
+    Report:
+      type: object
+      description: Energy is in kWh and shares are in percent. Fields with `_est_` are estimates.
+      required: [from, to, granularity, today_excluded, summary, figures, buckets]
+      properties:
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        granularity: { type: string }
+        today_excluded: { type: boolean }
+        summary:
+          type: object
+          properties:
+            days: { type: integer }
+            complete_days: { type: integer }
+            total: { $ref: "#/components/schemas/EnergyKWh" }
+            per_day:
+              type: object
+              nullable: true
+              allOf: [{ $ref: "#/components/schemas/EnergyKWh" }]
+            self_sufficiency_pct: { type: number, nullable: true }
+            self_consumption_pct: { type: number, nullable: true }
+            grid_charge_est_kwh: { type: number, nullable: true }
+            sources: { $ref: "#/components/schemas/Split" }
+            pv_split:
+              type: object
+              nullable: true
+              allOf: [{ $ref: "#/components/schemas/Split" }]
+            battery_ratio: { type: number, nullable: true }
+            balance_diff_kwh: { type: number, nullable: true }
+            balance_diff_pct: { type: number, nullable: true }
+            fallback_days: { type: integer }
+        figures:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              kind: { type: string, description: "Energy (kWh) or ratio (percent)." }
+              better: { type: string }
+              value: { type: number, nullable: true }
+              compared: { type: number, nullable: true }
+              base: { type: number, nullable: true }
+              change: { type: number, nullable: true }
+              change_pct: { type: number, nullable: true }
+        comparison:
+          type: object
+          nullable: true
+          properties:
+            mode: { type: string }
+            from: { type: string, format: date }
+            to: { type: string, format: date }
+            days: { type: integer }
+            complete_days: { type: integer }
+            matched: { type: boolean }
+            matched_days: { type: integer }
+        buckets:
+          type: array
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              from: { type: string, format: date }
+              to: { type: string, format: date }
+              partial: { type: boolean }
+              days: { type: integer }
+              complete_days: { type: integer }
+              total: { $ref: "#/components/schemas/EnergyKWh" }
+              self_sufficiency_pct: { type: number, nullable: true }
+        pv_sources: { type: array, items: { $ref: "#/components/schemas/ReportMeter" } }
+        batteries: { type: array, items: { $ref: "#/components/schemas/ReportMeter" } }
+        loadpoints:
+          type: object
+          nullable: true
+          properties:
+            house_solar_est_kwh: { type: number, nullable: true }
+            house_solar_pct: { type: number, nullable: true }
+            house_kwh: { type: number, nullable: true }
+            meters: { type: array, items: { $ref: "#/components/schemas/ReportMeter" } }
+            categories:
+              type: array
+              nullable: true
+              items: { $ref: "#/components/schemas/ReportMeter" }
+        profile:
+          type: object
+          description: The mean power of each 15-minute slot of the day.
+          properties:
+            mean_w: { type: array, items: { type: number, nullable: true } }
+            peak_w: { type: number, nullable: true }
+            peak_at: { type: string, format: date-time, nullable: true }
+        patterns:
+          type: object
+          properties:
+            best_pv: { $ref: "#/components/schemas/DayValue" }
+            lowest_pv: { $ref: "#/components/schemas/DayValue" }
+            max_consumption: { $ref: "#/components/schemas/DayValue" }
+            max_import: { $ref: "#/components/schemas/DayValue" }
+            weekday_consumption_kwh: { type: number, nullable: true }
+            weekend_consumption_kwh: { type: number, nullable: true }
+            low_import_days: { type: integer }
+        missing_days: { type: array, items: { type: string, format: date } }
+        quality:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              label: { type: string }
+              missing_days: { type: integer }
+              estimated_days: { type: integer }
+    EnergyKWh:
+      # No `type`: OpenAPI 3.0 would reject the nullable uses through `allOf`.
+      properties:
+        pv_kwh: { type: number, nullable: true }
+        consumption_kwh: { type: number }
+        import_kwh: { type: number }
+        export_kwh: { type: number }
+        charge_kwh: { type: number, nullable: true }
+        discharge_kwh: { type: number, nullable: true }
+    Split:
+      # No `type`: OpenAPI 3.0 would reject the nullable uses through `allOf`.
+      properties:
+        solar_est_kwh: { type: number }
+        battery_est_kwh: { type: number }
+        grid_est_kwh: { type: number }
+        solar_pct: { type: number, nullable: true }
+        battery_pct: { type: number, nullable: true }
+        grid_pct: { type: number, nullable: true }
+    ReportMeter:
+      type: object
+      properties:
+        id: { type: string }
+        label: { type: string }
+        category: { type: string }
+        complete_days: { type: integer }
+        in_kwh: { type: number, nullable: true }
+        out_kwh: { type: number, nullable: true }
+        share_pct: { type: number }
+        specific_yield: { type: number }
+        ratio: { type: number }
+        solar_est_kwh: { type: number }
+        solar_pct: { type: number }
+    DayValue:
+      type: object
+      nullable: true
+      properties:
+        date: { type: string, format: date }
+        kwh: { type: number }
+    Device:
+      type: object
+      required: [id, profile, state, meters, last_poll]
+      properties:
+        id: { type: string }
+        profile: { type: string }
+        vendor: { type: string }
+        models: { type: array, items: { type: string } }
+        transport: { type: string }
+        verified: { type: boolean }
+        state: { type: string }
+        interval_s: { type: number }
+        meters: { type: array, nullable: true, items: { type: string } }
+        last_poll:
+          type: object
+          nullable: true
+          properties:
+            at: { type: string, format: date-time }
+            took_ms: { type: integer }
+            ok: { type: boolean }
+    DeviceDetail:
+      allOf:
+        - { $ref: "#/components/schemas/Device" }
+        - type: object
+          properties:
+            netting: { type: string }
+            read: { type: string }
+            status:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  name: { type: string }
+                  label: { $ref: "#/components/schemas/Text" }
+            blocks:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  meter: { type: string }
+                  label: { type: string }
+                  role: { type: string }
+                  block: { type: string }
+                  channels:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name: { type: string }
+                        key: { type: string, description: Key for `/ws`. }
+                        unit: { type: string }
+    Text:
+      type: object
+      description: Text by language code.
+      additionalProperties: { type: string }
+      example: { en: Generating, de: Einspeisung }
+    StatusEvent:
+      type: object
+      required: [register, at, code, level]
+      properties:
+        register: { type: string }
+        at: { type: string, format: date-time }
+        code: { type: integer, format: int64 }
+        level: { type: string }
+        texts: { type: array, nullable: true, items: { $ref: "#/components/schemas/Text" } }
+    User:
+      type: object
+      required: [id, name, created_at, last_login]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        lang: { type: string }
+        created_at: { type: string, format: date-time }
+        last_login: { type: string, format: date-time, nullable: true }
+    UserBody:
+      type: object
+      required: [user]
+      properties:
+        user: { $ref: "#/components/schemas/User" }
+    Token:
+      type: object
+      required: [id, name, scope, created_at, expires_at, last_used]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        scope: { type: string }
+        created_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time, nullable: true }
+        last_used: { type: string, format: date-time, nullable: true }
+    AuditEntry:
+      type: object
+      required: [id, at, action]
+      properties:
+        id: { type: integer, format: int64 }
+        at: { type: string, format: date-time }
+        actor: { type: string, description: "`user:<name>`, `token:<id>` or `cli`." }
+        action: { type: string }
+        detail: { type: object, additionalProperties: true }
+    Config:
+      type: object
+      required: [config_rev, objects, settings]
+      properties:
+        config_rev: { type: integer, format: int64 }
+        objects: { type: array, items: { $ref: "#/components/schemas/Object" } }
+        settings: { type: object, additionalProperties: { $ref: "#/components/schemas/Setting" } }
+    Settings:
+      type: object
+      required: [config_rev, settings]
+      properties:
+        config_rev: { type: integer, format: int64 }
+        settings: { type: object, additionalProperties: { $ref: "#/components/schemas/Setting" } }
+    Setting:
+      type: object
+      required: [value, locked, stored]
+      properties:
+        value: { description: The effective value. }
+        locked: { type: boolean, description: Set in the file or in the environment. }
+        stored: { type: boolean, description: Set in the UI layer. }
+    Object:
+      type: object
+      required: [kind, id, locked, body, updated_at]
+      properties:
+        kind: { type: string, enum: [connection, device, meter] }
+        id: { type: string }
+        locked: { type: boolean }
+        body: { type: object, additionalProperties: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+        updated_by: { type: string }
+        unreadable:
+          type: array
+          description: The secrets that you must enter again.
+          items: { type: string }
+    ObjectBody:
+      type: object
+      required: [config_rev, object]
+      properties:
+        config_rev: { type: integer, format: int64 }
+        object: { $ref: "#/components/schemas/Object" }
+    Change:
+      type: object
+      required: [kind, id, body]
+      properties:
+        kind: { type: string, enum: [connection, device, meter] }
+        id: { type: string }
+        body:
+          type: object
+          nullable: true
+          description: "The value `null` deletes the object."
+          additionalProperties: true
+    Probe:
+      type: object
+      required: [device, profile, at, blocks]
+      properties:
+        device: { type: string }
+        profile: { type: string }
+        verified: { type: boolean }
+        at: { type: string, format: date-time }
+        took_ms: { type: integer }
+        error: { type: string }
+        blocks:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              role: { type: string }
+              roles_allowed: { type: array, nullable: true, items: { type: string } }
+              category: { type: string }
+              channels:
+                type: array
+                nullable: true
+                items:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    value: { type: number, nullable: true }
+                    text: { type: string }
+                    unit: { type: string }
+    Profile:
+      type: object
+      required: [id, vendor, transport, verified, blocks]
+      properties:
+        id: { type: string }
+        vendor: { type: string }
+        models: { type: array, nullable: true, items: { type: string } }
+        transport: { type: string }
+        verified: { type: boolean }
+        netting: { type: string }
+        blocks:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              role: { type: string }
+              roles_allowed: { type: array, nullable: true, items: { type: string } }
+              category: { type: string }
+              channels: { type: array, nullable: true, items: { type: string } }

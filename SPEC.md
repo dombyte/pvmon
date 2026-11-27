@@ -794,7 +794,7 @@ The exit code is 0 on a signal. The exit code is 1 on fatal health, a startup er
 
 ## 9. HTTP API and WebSocket protocol
 
-REST serves models, history, reports and administration. WebSocket serves live values only. All endpoints are versioned under `/api/v1`. They are documented in OpenAPI and served with Swagger UI at `/docs`. "Read" endpoints are open when `auth.public_read` is true. Otherwise they need a session or token.
+REST serves models, history, reports and administration. WebSocket serves live values only. All endpoints are versioned under `/api/v1`. They are documented in OpenAPI 3.0 (`docs/openapi.yaml`). The binary serves this document with Swagger UI at `/docs/`, without login. "Read" endpoints are open when `auth.public_read` is true. Otherwise they need a session or token.
 
 ### 9.1 Endpoints
 
@@ -1269,7 +1269,7 @@ Data correction commands print a before/after summary. They need `--yes` to writ
 | Area | Requirement |
 | --- | --- |
 | Platforms | linux (amd64, arm64, armv7) and darwin (amd64, arm64) binaries; multi-arch `scratch` image on ghcr.io (`latest` only for stable tags). Windows is unsupported (no `flock`) |
-| Deployment | single binary, no further runtime files (UI, profiles, fonts, docs embedded); Docker Compose templates for TCP and RTU (`devices:` for USB-RS485), `restart: unless-stopped`, `TZ` pinned, `data/` as volume (DB, backups, `secret.key`) |
+| Deployment | single binary, no further runtime files (UI, profiles, fonts, API docs embedded); Docker Compose templates for TCP and RTU (`devices:` for USB-RS485), `restart: unless-stopped`, `TZ` pinned, `data/` as volume (DB, backups, `secret.key`) |
 | Resource budget | smallest target Raspberry Pi 3B+/4: < 60 MB RSS in steady state, < 2 % CPU average with 5 devices at 5 s, start < 3 s, frontend initial bundle < 250 KB gzip (ECharts lazy). Pinned by a CI benchmark |
 | Bus budget | the scheduler measures the round-trip time per connection; above the smallest device interval the devices view warns ("bus overloaded: raise interval or use range mode"); polls are never skipped silently |
 | Responsiveness | overview first paint < 1 s on LAN; any REST read of a closed period < 200 ms when cached, < 1 s uncached for a year |

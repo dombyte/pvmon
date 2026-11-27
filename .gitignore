@@ -4,6 +4,9 @@
 /frontend/dist/*
 !/frontend/dist/.gitkeep
 /frontend/node_modules/
+/docs/dist/*
+!/docs/dist/.gitkeep
+/docs/node_modules/
 
 # local runtime data and config
 /data/

@@ -1,0 +1,14 @@
+{
+  "name": "pvmon-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "swagger-ui-dist": "5.36.0"
+  },
+  "scarfSettings": {
+    "enabled": false
+  }
+}
