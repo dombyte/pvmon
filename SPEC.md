@@ -368,7 +368,7 @@ Pvmon keeps neither lifetime values nor daily values internally. It keeps **ener
 - After a gap, pvmon places the reset at its expected instant. A restart that already saw the drop counts as a gap. The expected instant is the wall-clock time of the last confirmed reset. Before the first reset it is the `rollover`. It is never before the last reading before the drop. The rest of the old day stays open and never becomes 0.
 - Held polls book nothing. Their slots stay open until the release books them.
 - A member can show the reset but keep its value. Pvmon logs this member as stuck, and it continues normally.
-- A drop that vanishes earlier is a glitch.
+- A drop that vanishes earlier is a glitch. A drop vanishes when the value returns to its old level in one reading. After a reset the counter climbs from the low value in steps that `max_power` can explain: the drop stays, also when the climb reaches or passes the old value within the 15 min. Such a member books its value since the reset. A register that reads low and then climbs back in steps counts as a reset.
 - A false reset that lasts longer than 15 min ends in an implausible jump. Pvmon holds this jump. It becomes the new base without energy when the next reading confirms it.
 - Pvmon never books the energy of a daily register before the last confirmed reset (`counter_state.reset`). Before the first reset, the limit is the configured `rollover`.
 - Pvmon logs once when no reset occurred for 25 h.

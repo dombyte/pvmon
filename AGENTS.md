@@ -522,6 +522,8 @@ Gaps between this document and the repository:
 - **Old databases.** Databases written before the `daily_reset` gap fix (pvmon stopped over midnight) keep 0 Wh slots in the night that look measured. They also keep the energy of the night after the restart. Only `data exclude` (not built) can correct them.
 - **Old gap flags.** Databases written before counter gaps became `estimated` keep `gap` on those buckets. Their days stay incomplete until a `backfill` (not built) rewrites them.
 - **Old estimates.** Databases written before outages were told apart from slow cycles flag `estimated` after every failed poll and restart. Their coarse counter steps are spread evenly, and they keep 0 Wh slots before the first poll of a daily counter. A `backfill` (not built) can reshape them from `b15_gauge`.
+- **Restarts in short windows.** A pending daily reset is not persisted. A restart before the reset is confirmed, after the new day passed the old value, loses the old value.
+- **Fast climb after a reset.** A new day that reaches the old value in one reading counts as a glitch.
 - **Reports.** The data-quality section does not list device changes in the period, because no device history is stored.
 - **Netting `app`.** The daily drift check of coarse counters against the device totals (section 6) is not implemented. Device health `stale` (SPEC.md section 8.2) is not detected yet.
 - **docs/.** Swagger UI and OpenAPI do not exist yet. The dev `Dockerfile` gets its docs stage back with them.
