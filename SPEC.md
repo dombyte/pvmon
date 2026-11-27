@@ -402,7 +402,7 @@ Pvmon writes the state in the same transaction as the bucket upsert. The raw bas
 
 Every slot of the time gets a row, also with 0 Wh.
 
-The time can start after the base, for example at a daily reset. Pvmon then counts only the part of the first slot's power that is after the start, in proportion to the time. The power before the start belongs to the previous period.
+The time can start after the base, for example at a daily reset. Pvmon then counts only the part of the first slot's power that is after the start. At a daily reset the start is the poll before the first drop, and pvmon remembers the power up to that poll, so the part is exact. Without that value (the reset is placed in an outage or an earlier run, or after a restart), pvmon takes the part in proportion to the time. The power before the start belongs to the previous period.
 
 **Estimates.** For `lifetime` and `daily_reset`, only the slots from the start of an outage to the poll that books its delta are flagged `estimated`. A delta that falls into one slot is exact and is not flagged. The total is exact, so the affected days stay complete and show ≈. For `none`, the gap stays a gap: pvmon flags the slots from the last successful poll to the current poll `gap`, so the affected days are incomplete.
 

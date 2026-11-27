@@ -149,6 +149,11 @@ func (g *Group) resetFrom(p *pendingReset) time.Time {
 	return floor
 }
 
+// dropOpened reports whether the poll at at was the first to show the pending drop.
+func (g *Group) dropOpened(at time.Time) bool {
+	return g.pending != nil && g.pending.at.Equal(at)
+}
+
 // drops classifies the members: stuck = could show a reset (value above its resolution)
 // but did not drop; dropped = at least one member shows a drop.
 func (g *Group) drops(at time.Time, readings []Reading) ([]bool, bool) {

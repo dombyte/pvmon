@@ -57,6 +57,7 @@ func (c *Collector) process(r *deviceRun, raw profile.Raw, at time.Time) pollRes
 		gapFrom: maps.Clone(r.gapFrom),
 	}
 	b.deltas = r.deltas(vals, at, gap)
+	r.pinResets(at)
 	for x, d := range b.deltas {
 		if !d.From.IsZero() {
 			b.from[x] = d.From // a confirmed reset happened after the poll before the drop
