@@ -173,6 +173,11 @@ echo "Checking docs..."
 make docs docs-site
 print_result $? "docs (Swagger UI, documentation site)"
 
+# 10. Licenses and the notices file. It uses the builds of steps 7 and 9.
+echo "Checking licenses..."
+node scripts/licenses.mjs --check
+print_result $? "licenses (run 'make license-update' if the notices file is old)"
+
 echo ""
 echo "=== Pre-commit Checks Complete ==="
 

@@ -35,6 +35,16 @@ docs-site:
 .PHONY: assets
 assets: frontend docs
 
+# Checks the licenses of the third-party code and that
+# LICENSES/THIRD_PARTY_NOTICES.md is up to date. license-update writes the file.
+.PHONY: license
+license: frontend docs
+	node scripts/licenses.mjs --check
+
+.PHONY: license-update
+license-update: frontend docs
+	node scripts/licenses.mjs
+
 .PHONY: all
 all: assets build
 

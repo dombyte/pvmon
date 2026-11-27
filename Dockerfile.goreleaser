@@ -12,6 +12,7 @@ COPY --from=ghcr.io/tarampampam/microcheck:1 /bin/httpcheck /bin/httpcheck
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY $TARGETPLATFORM/pvmon /app
+COPY LICENSES/THIRD_PARTY_NOTICES.md /app/
 
 EXPOSE 8080
 ENTRYPOINT ["/app/pvmon"]

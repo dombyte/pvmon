@@ -47,6 +47,7 @@ go test -tags simulation -run Simulation ./internal/collector    # in make check
 go test -tags simulation -run ProfileSimulation ./internal/collector -profile=<id or file>
 make assets | build | all | docker          # dists; ./pvmon with ldflags; both; dev image
 make docs | docs-site                       # Swagger UI for the binary; documentation site
+make license | license-update               # license check; write the notices file
 make e2e | e2e-update                       # Playwright screenshots + axe in the CI image
 go run ./cmd [-config <path>]               # server (default ./config.yaml)
 go run ./cmd simulate --setup R3            # fake transports for UI work (SPEC.md section 13)
@@ -60,7 +61,7 @@ cd frontend && npm run typecheck && npm run lint && npm run knip && npm test
 - `make check` runs the checks of CI and the collector simulation, which CI does not run. CI (`checks.yml`) also runs the tidy check, the mock drift check, the profile golden tests, the frontend checks, the docs build, the i18n key check, the bundle budget and the Playwright e2e tests. Run `make check` before every merge.
 - `.golangci.yml` is the source of the lint and size rules (taken over from solis). Do not relax it without a deviation in section 12.3.
 - The toolchain is Go 1.27.4 (`go` directive in `go.mod`). Pin tool versions. Bump them deliberately. Use the same versions locally and in CI.
-- Go tools (mockery, deadcode, govulncheck) are `tool` directives in `go.mod`. Run them with `go tool <name>`. Bump them with `go get -tool <module>@vX.Y.Z`. A pinned `go run` checks sum.golang.org on every CI run.
+- Go tools (mockery, deadcode, govulncheck, go-licenses) are `tool` directives in `go.mod`. Run them with `go tool <name>`. Bump them with `go get -tool <module>@vX.Y.Z`. A pinned `go run` checks sum.golang.org on every CI run.
 - golangci-lint and goreleaser run as pinned prebuilt binaries. Never use them as Go modules.
 - Use only the dependencies in section 10. A new dependency (Go or npm) needs a row there with version, reason and the stdlib alternative that you considered. Add the row in the same change. Use the stdlib first.
 - Renovate is the only dependency updater. `renovate.json` MUST track every pinned version:
@@ -71,6 +72,7 @@ cd frontend && npm run typecheck && npm run lint && npm run knip && npm test
   - a regex manager for the golangci-lint `version:`
 
   A change that adds a pin extends `renovate.json`.
+- Licenses: `scripts/licenses.mjs` checks the licenses (Go with `go-licenses`) and writes `LICENSES/THIRD_PARTY_NOTICES.md`. `make check` and CI stop if the file is old: after a change of a dependency, run `make license-update`. Then commit the file. Texts that no tool finds are in `LICENSES/`. A change that adds such third-party code MUST add its text there and to the script.
 - Syntax grammars: `docs/site/.vitepress/grammars.mjs` removes the grammars that the site does not use, because some have the GPL license. Before you add a grammar, make sure that its license permits it.
 - Documentation site: `docs.yml` publishes only one version, after each stable release or by a manual start. A manual start on `main` publishes `main`. `npm --prefix docs run dev` shows the site and the API pages locally.
 - Release: push a SemVer tag `vX.Y.Z` on `main`. `release.yml` runs the checks again. goreleaser (`make assets` in its before hooks) builds the archives and images. The image tag `latest` exists only for stable releases.
@@ -406,6 +408,7 @@ Indirect only:
 | --- | --- | --- |
 | mockery | `github.com/vektra/mockery/v3` | v3.9.2 |
 | govulncheck | `golang.org/x/vuln` | v1.10.0 |
+| go-licenses (license check; the stdlib has none) | `github.com/google/go-licenses/v2` | v2.0.1 |
 | deadcode | `golang.org/x/tools` | v0.53.0 |
 
 golangci-lint and goreleaser run as pinned prebuilt binaries (as in solis). They are not Go modules.

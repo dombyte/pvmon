@@ -34,7 +34,8 @@ export function pwa(): Plugin {
       const hash = createHash('sha256')
       const files: string[] = []
       for (const [name, item] of Object.entries(bundle).sort(([a], [b]) => a.localeCompare(b))) {
-        if (name === swFile || name.endsWith('.map')) continue
+        // Dot files (.vite/) are build metadata, not parts of the app.
+        if (name === swFile || name.startsWith('.') || name.endsWith('.map')) continue
         files.push(`/${name}`)
         hash.update(name).update(item.type === 'chunk' ? item.code : item.source)
       }

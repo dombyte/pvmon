@@ -1278,7 +1278,7 @@ Data correction commands print a before/after summary. They need `--yes` to writ
 | Releases | goreleaser builds archives and images from a tag on `main` after the checks run again |
 | Dependencies | Renovate is the only updater and tracks every pinned version (Go modules incl. tool directives, npm, Dockerfiles, compose, GitHub Actions, golangci-lint) |
 | Privacy | no telemetry, no phone-home, no external fonts or CDNs at runtime (fonts are bundled) |
-| Licence | MIT for code and profiles |
+| Licence | MIT for code and profiles. The release archives and the container image contain the notices of the third-party code. Releases have SBOMs |
 | Documentation | README: quick start and common options. Documentation site on GitHub Pages: installation, setups, netting, FAQ, security, profile guide and API pages from `openapi.yaml`. Each stable release publishes the site. The site is not part of the binary. The binary has Swagger UI for the API. AGENTS.md: contributors and agents |
 
 **Dependencies (MUST stay minimal; stdlib first):** The toolchain is Go 1.27.4. AGENTS.md section 10 lists every Go module and npm package with version, reason and stdlib alternative. Routing (`net/http`), JSON paths, `flock` and tokens use the standard library. Tests use testify with mockery-generated mocks. These are test-only dependencies. A new dependency needs a row there in the same change.

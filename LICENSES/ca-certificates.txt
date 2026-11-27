@@ -1,0 +1,4 @@
+The file /etc/ssl/certs/ca-certificates.crt of the container image contains the Mozilla CA
+certificate list. Its license is the Mozilla Public License 2.0:
+https://www.mozilla.org/MPL/2.0/
+The source is available at https://gitlab.alpinelinux.org/alpine/ca-certificates

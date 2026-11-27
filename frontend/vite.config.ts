@@ -23,6 +23,8 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     chunkSizeWarningLimit: chunkWarningKb,
+    // docs/scripts/notices.mjs reads this list of the bundled packages.
+    license: { fileName: '.vite/license.json' },
     rollupOptions: { input: pwaInput, output: { entryFileNames } },
   },
   test: { environment: 'happy-dom', include: ['src/**/*.test.ts'] },

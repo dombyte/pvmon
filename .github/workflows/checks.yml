@@ -131,14 +131,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
       - uses: actions/setup-node@v7
         with:
           node-version: lts/*
           cache: npm
-          cache-dependency-path: docs/package-lock.json
+          cache-dependency-path: |
+            frontend/package-lock.json
+            docs/package-lock.json
 
-      # VitePress stops on a dead link.
-      - run: make docs docs-site
+      # license stops on a license that is not allowed, VitePress on a dead link.
+      - run: make license docs-site
 
   e2e:
     name: Frontend screenshots and accessibility
