@@ -53,6 +53,10 @@ const daily: Record<string, (n: number) => number> = {
   'site/self_sufficiency': (n) => 45 + ((n * 19) % 6) * 5,
   'site/self_consumption': (n) => 80 + ((n * 23) % 4) * 4,
 }
+daily['site/house_rest'] = (n) =>
+  daily['site/consumption']!(n) -
+  daily['site/loadpoints/wallbox']!(n) -
+  daily['site/loadpoints/heatpump']!(n)
 const perLevel: Record<string, number> = { month: 19, year: 323, total: 628 }
 
 function value(name: string, period: string, n: number, factor = 1): EnergyValue {
@@ -94,6 +98,7 @@ function slotValues(h: number): Record<string, number> {
   return {
     'site/pv': pv,
     'site/consumption': cons,
+    'site/house_rest': cons - wb - hp,
     'site/loadpoints/wallbox': wb,
     'site/loadpoints/heatpump': hp,
     'site/grid_in': Math.max(grid, 0),

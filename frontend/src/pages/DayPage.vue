@@ -51,7 +51,7 @@ const meters = computed(() => req.value?.meters ?? [])
 const catName = (c: string) => t(`roles.${c}`)
 const metersOf = (c: string) => meters.value.filter((m) => m.category === c)
 
-type Chip = 'pv' | 'band' | 'consumption' | 'grid' | 'battery' | `lp:${string}`
+type Chip = 'pv' | 'band' | 'house' | 'grid' | 'battery' | `lp:${string}`
 /** The PV min/max band is a detail: off until asked for. */
 const hidden = ref(new Set<Chip>(['band']))
 function toggle(id: Chip): void {
@@ -84,7 +84,7 @@ const chips = computed(() => {
     out.push({ id: 'pv', name: t('roles.pv'), token: 'pv' })
     out.push({ id: 'band', name: t('day.band'), token: 'pv' })
   }
-  out.push({ id: 'consumption', name: t('energy.consumption'), token: 'home' })
+  out.push({ id: 'house', name: t('roles.house'), token: 'home' })
   for (const c of cats.value) {
     if (!split.value.has(c)) {
       out.push({ id: `lp:${c}`, name: catName(c), token: categoryToken(c), cat: c })
@@ -108,12 +108,12 @@ const splitAfter = (i: number) => {
 const vis = computed<DayVisible>(() => ({
   pv: !hidden.value.has('pv'),
   band: !hidden.value.has('band'),
-  consumption: !hidden.value.has('consumption'),
+  house: !hidden.value.has('house'),
   grid: !hidden.value.has('grid'),
   battery: !hidden.value.has('battery'),
 }))
 
-const dashes = ['solid', 'dashed', 'dotted'] as const
+const shades = [0.75, 0.5, 0.3] as const
 const loadLines = computed<LoadLine[]>(() =>
   cats.value.flatMap((c) => {
     const token = categoryToken(c)
@@ -122,9 +122,9 @@ const loadLines = computed<LoadLine[]>(() =>
           key: `m:${m.id}`,
           name: m.label,
           token,
-          dash: dashes[i % dashes.length]!,
+          opacity: shades[i % shades.length]!,
         }))
-      : [{ key: c, name: catName(c), token, dash: 'solid' }]
+      : [{ key: c, name: catName(c), token, opacity: shades[1] }]
     return lines.filter((l) => !hidden.value.has(`lp:${l.key}`))
   }),
 )
@@ -134,6 +134,7 @@ const text = computed<DayText>(() => ({
   pv: t('day.pvAvg'),
   pvBand: t('day.pvBand'),
   consumption: t('energy.consumption'),
+  house: t('roles.house'),
   loadpoints: loadLines.value,
   gridIn: t('energy.gridIn'),
   gridOut: t('energy.gridOut'),
@@ -162,7 +163,8 @@ const sumRows = computed(() => {
   const s = site.model?.site_series ?? []
   const rows: { name: string; series: string; token: string }[] = [
     { name: t('energy.pv'), series: 'site/pv', token: 'pv' },
-    { name: t('energy.consumption'), series: 'site/consumption', token: 'home' },
+    { name: t('energy.consumption'), series: 'site/consumption', token: 'ink-2' },
+    { name: t('flow.ofWhich', { name: t('roles.house') }), series: 'site/house_rest', token: 'home' },
     ...cats.value.flatMap((c) => [
       {
         name: t('flow.ofWhich', { name: catName(c) }),
