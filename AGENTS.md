@@ -38,6 +38,7 @@ At runtime the application needs only the binary, an optional `config.yaml` and 
 make check                                  # ./scripts/pre-commit.sh, check-only (no mockery)
 golangci-lint fmt --config .golangci.yml    # gofumpt + goimports (prefix github.com/dombyte/pvmon)
 golangci-lint run --config .golangci.yml
+make sim | sim-rand                         # full simulation with -race; seed 1 | random seed
 go tool deadcode -test ./...
 go tool govulncheck ./...
 go tool mockery                             # regenerate mocks (.mockery.yaml)

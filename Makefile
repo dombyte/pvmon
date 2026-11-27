@@ -63,6 +63,21 @@ GO_PKGS := $(addprefix ./,$(addsuffix /...,$(shell git ls-files --cached --other
 test:
 	go test -race $(GO_PKGS)
 
+# Full simulation: every profile in every scenario. PVMON_SIM_SEED=<n> repeats a run.
+SIM_TEST := PVMON_SIM=full go test -race -tags simulation -run Simulation -count=1 \
+	./internal/collector
+
+.PHONY: sim
+sim:
+	$(SIM_TEST)
+
+# Full simulation with new random device data; prints the seed to repeat a failure.
+.PHONY: sim-rand
+sim-rand:
+	@seed=$$(od -An -N4 -tu4 /dev/urandom | tr -d ' '); \
+	echo "repeat with: make sim PVMON_SIM_SEED=$$seed"; \
+	PVMON_SIM_SEED=$$seed $(SIM_TEST)
+
 .PHONY: lint
 lint:
 	golangci-lint run --config .golangci.yml $(GO_PKGS)
