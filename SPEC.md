@@ -449,7 +449,7 @@ The config always wins. A model variant that behaves differently gets its own pr
 
 **Input selection with `app` (automatic, best method first):**
 
-1. **Fine counters.** These are total import and export counters, or counters for each phase with the profile `sum`. Use them while their effective resolution is ≤ 1 Wh. Net = Δimport − Δexport for each poll.
+1. **Fine counters.** These are total import and export counters, or counters for each phase with the profile `sum`. Use them while their effective resolution is ≤ 1 Wh. Net = Δimport − Δexport for each poll. The two counters do not step in the same polls. Near 0 W, their rounding would book energy in both directions. Pvmon therefore holds a net below 2 Wh and adds it to the net of the next polls. It books the sum when it reaches 2 Wh in either direction. A gap poll books everything. A restart loses the held net (less than 2 Wh).
 2. **Signed total grid power.** This is the signed sum of the meter, or the sum of the powers of each phase. Net = power × time for each poll. It uses the same integrator as `none`.
 
 When the counters become too coarse, the device switches to method 2 and logs it once. Solis 0.1 kWh dailies and 0.01 kWh meter totals are coarse counters. They rarely move between 5 s polls. They step at *different* polls. Method 1 would then book both sides.

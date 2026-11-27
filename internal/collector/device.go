@@ -32,6 +32,7 @@ type deviceRun struct {
 	booked  map[ref]time.Time // last poll that booked a delta of the counter
 	read    map[ref]time.Time // last poll of the run before that read the counter
 	netInt  Integrator
+	netHeld float64 // Wh of method 1 net below nettingDeadband, not booked yet
 	netMode string
 	status  map[string]int64 // last stored code per status register
 	conn    int64            // last stored connection code, -1 none

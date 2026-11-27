@@ -428,6 +428,9 @@ func (s *sim) check(t *testing.T) {
 		}
 		s.checkTotal(t, sr)
 	}
+	if s.dev.netted {
+		s.checkNet(t, all)
+	}
 }
 
 // checkSlots: no negative energy, flags only where spec 5.3 sets them, no missing slot and
@@ -512,6 +515,27 @@ func (s *sim) checkDays(t *testing.T, sr series) {
 		}
 		assert.InDelta(t, d.register, got, tol, "%s: day %s", sr.key, day.Format("01-02"))
 	}
+}
+
+// checkNet: netting never changes the net of the grid (spec 6).
+func (s *sim) checkNet(t *testing.T, all []series) {
+	t.Helper()
+	got, want, tol := 0.0, 0.0, 0.0
+	for _, sr := range all {
+		if !sr.netted {
+			continue
+		}
+		sign := 1.0
+		if strings.HasSuffix(sr.key, "_out") {
+			sign = -1
+		}
+		for slot := collector.Slot(s.first) + 1; slot < collector.Slot(s.end)-8; slot++ {
+			got += sign * sr.rows[slot].Wh
+			want += sign * s.dev.truth[sr.key][slot]
+		}
+		tol += sr.tolerance()
+	}
+	assert.InDelta(t, want, got, tol+0.002*math.Abs(want), "grid net")
 }
 
 // resetPower bounds the power that may be booked across a reset. The first slot of the

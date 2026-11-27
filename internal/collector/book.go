@@ -2,6 +2,7 @@ package collector
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/dombyte/pvmon/internal/profile"
@@ -214,6 +215,9 @@ func (r *deviceRun) markLost(b *booking, ip integratePlan) {
 const (
 	nettingCounters = "counters"
 	nettingPower    = "power"
+	// nettingDeadband is the smallest net that method 1 books. Its counters step by up to
+	// 1 Wh, not in the same polls, so a difference below two steps can be their rounding.
+	nettingDeadband = 2.0 // Wh
 )
 
 // bookNetting nets the grid meter per poll and books import or export.
@@ -236,14 +240,32 @@ func (r *deviceRun) bookNetting(b *booking) {
 	}
 }
 
-// netAmount is import − export of this poll: from the counters (method 1, and every gap
-// poll) or from the integrated signed power (method 2).
+// netAmount is the net to book at this poll: import − export from the counters (method 1,
+// and every gap poll) or from the integrated signed power (method 2), plus what method 1
+// held back before.
 func (r *deviceRun) netAmount(b *booking, np *nettingPlan, method string) (float64, bool) {
 	if method == nettingPower && !b.gap {
-		return r.netPower(b, np)
+		net, ok := r.netPower(b, np)
+		if !ok {
+			return 0, false
+		}
+		return r.takeNet(net), true
 	}
 	r.netInt.Reset()
-	return b.deltas[np.imp].Wh - b.deltas[np.exp].Wh, true
+	net := r.takeNet(b.deltas[np.imp].Wh - b.deltas[np.exp].Wh)
+	if method == nettingCounters && !b.gap && math.Abs(net) < nettingDeadband {
+		// shortcut: held in memory only, so a restart loses less than the deadband;
+		// persist it in counter_state if that ever matters.
+		r.netHeld, net = net, 0
+	}
+	return net, true
+}
+
+// takeNet adds the held net to net.
+func (r *deviceRun) takeNet(net float64) float64 {
+	net += r.netHeld
+	r.netHeld = 0
+	return net
 }
 
 // nettable reports whether both counters were read and a base time exists.
