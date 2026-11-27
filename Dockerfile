@@ -7,6 +7,14 @@ COPY frontend/ .
 ARG VERSION=dev
 RUN VITE_APP_VERSION=${VERSION} npm run build
 
+FROM node:26-alpine AS docs
+WORKDIR /docs
+COPY docs/package.json docs/package-lock.json ./
+RUN npm ci
+COPY docs/ .
+ARG VERSION=dev
+RUN VITE_APP_VERSION=${VERSION} npm run build
+
 FROM golang:1.27.4-alpine AS builder
 WORKDIR /app
 RUN apk --no-cache add ca-certificates tzdata
@@ -20,8 +28,10 @@ ARG COMMIT=unknown
 ARG BUILD_DATE=unknown
 
 COPY . .
-# The web UI is embedded into the binary (go:embed), so they must exist before go build.
+# The web UI and the API docs are embedded into the binary (go:embed), so they must exist
+# before go build.
 COPY --from=frontend /frontend/dist ./frontend/dist
+COPY --from=docs /docs/dist ./docs/dist
 RUN CGO_ENABLED=0 go build \
     -ldflags="-w -s -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${BUILD_DATE}" \
     -a \

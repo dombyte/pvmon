@@ -15,9 +15,9 @@ import (
 // reference setup is used; otherwise the configured site, writing to simulate.db.
 func runSimulate(e env) error {
 	fs, cfg := newFlags("simulate", e.stderr)
-	setup := fs.String("setup", "", "built-in setup (R1, R3, R4)")
+	setup := fs.String("setup", "", "built-in setup (R1 to R7)")
 	if err := fs.Parse(e.args); err != nil || fs.NArg() > 0 {
-		return fmt.Errorf("simulate [--setup R1|R3|R4] [-config path]: %w", errUsage)
+		return fmt.Errorf("simulate [--setup R1..R7] [-config path]: %w", errUsage)
 	}
 	l, err := loadSimulation(*setup, *cfg)
 	if err != nil {

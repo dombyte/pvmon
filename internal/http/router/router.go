@@ -1,7 +1,10 @@
 // Package router declares every HTTP route and its access level in one place.
 package router
 
-import "net/http"
+import (
+	"net/http"
+	"slices"
+)
 
 // Handlers are the handlers of all routes.
 type Handlers struct {
@@ -15,6 +18,7 @@ type Handlers struct {
 	Auth    AuthHandlers
 	Config  ConfigHandlers
 	WS      http.Handler
+	Docs    http.Handler
 	UI      http.Handler
 }
 
@@ -46,71 +50,105 @@ type Guards struct {
 // New returns the mux with all routes.
 func New(h Handlers, g Guards) *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.Handle("GET /health", h.Health)
-	mux.Handle("GET /api/v1/version", h.Version)
-	read(mux, g, h)
-	open(mux, h.Auth)
-	admin(mux, g, h.Auth)
-	config(mux, g, h.Config)
-	mux.Handle("GET /", h.UI)
+	for _, r := range routes(h) {
+		hd := r.handler
+		switch r.access {
+		case accessRead:
+			hd = g.Read(hd)
+		case accessAdmin:
+			hd = g.Admin(hd)
+		case accessOpen:
+		}
+		mux.Handle(r.pattern, hd)
+	}
 	return mux
 }
 
-func read(mux *http.ServeMux, g Guards, h Handlers) {
-	routes := map[string]http.Handler{
-		"GET /api/v1/site":                h.Site,
-		"GET /api/v1/energy":              h.Energy,
-		"GET /api/v1/gauge":               h.Gauge,
-		"GET /api/v1/report":              h.Report,
-		"GET /api/v1/devices":             h.Devices.List,
-		"GET /api/v1/devices/{id}":        h.Devices.Get,
-		"GET /api/v1/devices/{id}/status": h.Devices.Status,
-		"GET /api/v1/status":              h.Devices.Overview,
-		"GET /ws":                         h.WS,
+// Patterns returns the pattern of every route, for the OpenAPI contract test.
+func Patterns() []string {
+	rs := routes(Handlers{})
+	out := make([]string, len(rs))
+	for i, r := range rs {
+		out[i] = r.pattern
 	}
-	for p, hd := range routes {
-		mux.Handle(p, g.Read(hd))
+	return out
+}
+
+type access int
+
+const (
+	accessOpen access = iota
+	accessRead
+	accessAdmin
+)
+
+type route struct {
+	pattern string
+	access  access
+	handler http.Handler
+}
+
+func routes(h Handlers) []route {
+	return slices.Concat(public(h), read(h), open(h.Auth), admin(h.Auth), config(h.Config))
+}
+
+func public(h Handlers) []route {
+	return []route{
+		{"GET /health", accessOpen, h.Health},
+		{"GET /api/v1/version", accessOpen, h.Version},
+		{"GET /docs/", accessOpen, h.Docs},
+		{"GET /", accessOpen, h.UI},
+	}
+}
+
+func read(h Handlers) []route {
+	return []route{
+		{"GET /api/v1/site", accessRead, h.Site},
+		{"GET /api/v1/energy", accessRead, h.Energy},
+		{"GET /api/v1/gauge", accessRead, h.Gauge},
+		{"GET /api/v1/report", accessRead, h.Report},
+		{"GET /api/v1/devices", accessRead, h.Devices.List},
+		{"GET /api/v1/devices/{id}", accessRead, h.Devices.Get},
+		{"GET /api/v1/devices/{id}/status", accessRead, h.Devices.Status},
+		{"GET /api/v1/status", accessRead, h.Devices.Overview},
+		{"GET /ws", accessRead, h.WS},
 	}
 }
 
 // open routes need no login; logout checks its session itself.
-func open(mux *http.ServeMux, h AuthHandlers) {
-	mux.Handle("POST /api/v1/auth/login", h.Login)
-	mux.Handle("POST /api/v1/auth/logout", h.Logout)
-	mux.Handle("GET /api/v1/auth/me", h.Me)
-	mux.Handle("POST /api/v1/setup", h.Setup)
-}
-
-func admin(mux *http.ServeMux, g Guards, h AuthHandlers) {
-	routes := map[string]http.Handler{
-		"GET /api/v1/users":               h.Users,
-		"POST /api/v1/users":              h.AddUser,
-		"DELETE /api/v1/users/{id}":       h.DeleteUser,
-		"PUT /api/v1/users/{id}/password": h.SetPassword,
-		"GET /api/v1/tokens":              h.Tokens,
-		"POST /api/v1/tokens":             h.CreateToken,
-		"DELETE /api/v1/tokens/{id}":      h.RevokeToken,
-		"GET /api/v1/audit":               h.AuditLog,
-	}
-	for p, hd := range routes {
-		mux.Handle(p, g.Admin(hd))
+func open(h AuthHandlers) []route {
+	return []route{
+		{"POST /api/v1/auth/login", accessOpen, h.Login},
+		{"POST /api/v1/auth/logout", accessOpen, h.Logout},
+		{"GET /api/v1/auth/me", accessOpen, h.Me},
+		{"POST /api/v1/setup", accessOpen, h.Setup},
 	}
 }
 
-func config(mux *http.ServeMux, g Guards, h ConfigHandlers) {
-	routes := map[string]http.Handler{
-		"GET /api/v1/config":                h.Overview,
-		"PUT /api/v1/config":                h.PutObjects,
-		"POST /api/v1/config/probe":         h.Probe,
-		"GET /api/v1/config/settings":       h.Settings,
-		"PUT /api/v1/config/settings":       h.PutSettings,
-		"GET /api/v1/config/export":         h.Export,
-		"GET /api/v1/config/{kind}/{id}":    h.Object,
-		"PUT /api/v1/config/{kind}/{id}":    h.PutObject,
-		"DELETE /api/v1/config/{kind}/{id}": h.DeleteObject,
-		"GET /api/v1/profiles":              h.Profiles,
+func admin(h AuthHandlers) []route {
+	return []route{
+		{"GET /api/v1/users", accessAdmin, h.Users},
+		{"POST /api/v1/users", accessAdmin, h.AddUser},
+		{"DELETE /api/v1/users/{id}", accessAdmin, h.DeleteUser},
+		{"PUT /api/v1/users/{id}/password", accessAdmin, h.SetPassword},
+		{"GET /api/v1/tokens", accessAdmin, h.Tokens},
+		{"POST /api/v1/tokens", accessAdmin, h.CreateToken},
+		{"DELETE /api/v1/tokens/{id}", accessAdmin, h.RevokeToken},
+		{"GET /api/v1/audit", accessAdmin, h.AuditLog},
 	}
-	for p, hd := range routes {
-		mux.Handle(p, g.Admin(hd))
+}
+
+func config(h ConfigHandlers) []route {
+	return []route{
+		{"GET /api/v1/config", accessAdmin, h.Overview},
+		{"PUT /api/v1/config", accessAdmin, h.PutObjects},
+		{"POST /api/v1/config/probe", accessAdmin, h.Probe},
+		{"GET /api/v1/config/settings", accessAdmin, h.Settings},
+		{"PUT /api/v1/config/settings", accessAdmin, h.PutSettings},
+		{"GET /api/v1/config/export", accessAdmin, h.Export},
+		{"GET /api/v1/config/{kind}/{id}", accessAdmin, h.Object},
+		{"PUT /api/v1/config/{kind}/{id}", accessAdmin, h.PutObject},
+		{"DELETE /api/v1/config/{kind}/{id}", accessAdmin, h.DeleteObject},
+		{"GET /api/v1/profiles", accessAdmin, h.Profiles},
 	}
 }

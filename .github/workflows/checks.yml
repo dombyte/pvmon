@@ -123,6 +123,23 @@ jobs:
         working-directory: .
         run: ./scripts/bundle-budget.sh
 
+  docs:
+    name: API docs and documentation site build
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      # VitePress stops on a dead link.
+      - run: make docs docs-site
+
   e2e:
     name: Frontend screenshots and accessibility
     needs: gate

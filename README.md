@@ -10,6 +10,8 @@ not send data to the internet.
 
 ![Overview](frontend/e2e/__screenshots__/desktop/overview-r4-light.png)
 
+**Documentation:** <https://dombyte.github.io/pvmon/>
+
 ## Contents
 
 - [Features](#features)
@@ -197,8 +199,9 @@ Stop the server before you use `user`, `token`, `dump` or `import-solis`. These 
 make and verify a backup before they write. Exit codes: 0 = success, 1 = failure,
 2 = usage error.
 
-The REST API is at `/api/v1`. Live values are available over the WebSocket `/ws`. To use
-the API from a script, create a token and send it as `Authorization: Bearer <token>`.
+The REST API is at `/api/v1`. pvmon shows its reference (Swagger UI) at `/docs/`. Live
+values are available over the WebSocket `/ws`. To use the API from a script, create a
+token and send it as `Authorization: Bearer <token>`.
 
 ## Import from solis
 

@@ -4,6 +4,11 @@
 /frontend/dist/*
 !/frontend/dist/.gitkeep
 /frontend/node_modules/
+/docs/dist/*
+!/docs/dist/.gitkeep
+/docs/dist-site/
+/docs/node_modules/
+/docs/site/.vitepress/cache/
 
 # local runtime data and config
 /data/

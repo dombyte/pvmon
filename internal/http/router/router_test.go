@@ -38,7 +38,7 @@ func TestRoutes(t *testing.T) {
 			Export: ok("export"), Object: ok("obj"), PutObject: ok("putobj"),
 			DeleteObject: ok("delobj"), Profiles: ok("profiles"),
 		},
-		UI: ok("ui"),
+		Docs: ok("docs"), UI: ok("ui"),
 	}, Guards{Read: guard("R:"), Admin: guard("A:")})
 	cases := []struct{ method, path, want string }{
 		{"GET", "/health", "health"},
@@ -72,6 +72,8 @@ func TestRoutes(t *testing.T) {
 		{"PUT", "/api/v1/config/devices/wr1", "A:putobj"},
 		{"DELETE", "/api/v1/config/devices/wr1", "A:delobj"},
 		{"GET", "/api/v1/profiles", "A:profiles"},
+		{"GET", "/docs/", "docs"},
+		{"GET", "/docs/openapi.yaml", "docs"},
 		{"GET", "/", "ui"},
 		{"GET", "/history", "ui"},
 	}
@@ -80,6 +82,10 @@ func TestRoutes(t *testing.T) {
 		mux.ServeHTTP(rec, httptest.NewRequest(c.method, c.path, nil))
 		assert.Equal(t, c.want, rec.Body.String(), c.method+" "+c.path)
 	}
+	redirect := httptest.NewRecorder()
+	mux.ServeHTTP(redirect, httptest.NewRequest(http.MethodGet, "/docs", nil))
+	assert.Equal(t, "/docs/", redirect.Header().Get("Location"))
+	assert.Len(t, Patterns(), len(routes(Handlers{})))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/health", nil))
 	assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
