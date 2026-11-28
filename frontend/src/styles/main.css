@@ -123,6 +123,12 @@
   --radius-control: 12px;
   --radius-card: 18px;
   --shadow-card: var(--shadow);
+  --animate-swing: swing 1.4s cubic-bezier(0.6, 0.1, 0.4, 0.9) infinite;
+  @keyframes swing {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 }
 
 html,

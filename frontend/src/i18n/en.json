@@ -65,7 +65,8 @@
   },
   "common": {
     "close": "Close",
-    "confirm": "{action} – sure?"
+    "confirm": "{action} – sure?",
+    "loading": "Loading"
   },
   "overview": {
     "asOf": "{date} · as of {time}",

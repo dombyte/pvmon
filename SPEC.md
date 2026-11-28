@@ -1001,7 +1001,8 @@ The UI is built entirely from `GET /api/v1/site`. It contains no hard-coded devi
 ### 11.1 Stack
 
 - Vue 3 (Composition API, `<script setup>`, TypeScript strict), Vite, Vue Router, Pinia, vue-i18n, Tailwind 4.
-- `@lucide/vue` is the only icon source.
+- `@lucide/vue` is the only icon source. The logo is the brand mark, not an icon: a ring in the PV, battery and grid colours around a house in the home colour.
+- Until the first site model or a load error arrives, the logo ring replaces the page. It swings once every 1.4 s. It does not move with `prefers-reduced-motion`. Screen readers get a "Loading" status.
 - Apache ECharts is imported tree-shaken from `echarts/core` through an own composable. There is no `vue-echarts`.
 - Inter is self-hosted via `@fontsource-variable/inter`.
 - There is no VueUse and no date library. `matchMedia`, `ResizeObserver`, `Intl` and a small local-date helper cover these needs.

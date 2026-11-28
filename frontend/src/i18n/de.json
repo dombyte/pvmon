@@ -65,7 +65,8 @@
   },
   "common": {
     "close": "Schließen",
-    "confirm": "{action} – sicher?"
+    "confirm": "{action} – sicher?",
+    "loading": "Wird geladen"
   },
   "overview": {
     "asOf": "{date} · Stand {time}",

@@ -1,7 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" fill="#0c0e12"/>
-  <circle cx="256" cy="256" r="113" fill="#fbbf24"/>
-  <g stroke="#fbbf24" stroke-width="22" stroke-linecap="round">
-    <path d="M256 70v40M256 402v40M70 256h40M402 256h40M125 125l28 28M359 359l28 28M387 125l-28 28M153 359l-28 28"/>
+  <!-- Real arcs: many SVG renderers ignore pathLength. -->
+  <g fill="none" stroke-width="60" stroke-linecap="round">
+    <path d="M292.23 120.77A140 140 0 0 1 337.10 370.12" stroke="#fbbf24"/>
+    <path d="M254.53 395.99A140 140 0 0 1 122.41 297.87" stroke="#34d399"/>
+    <path d="M123.31 211.35A140 140 0 0 1 205.83 125.30" stroke="#60a5fa"/>
   </g>
+  <path d="M256 194L318 246V312H194V246Z" fill="#a78bfa" stroke="#a78bfa" stroke-width="18" stroke-linejoin="round"/>
 </svg>
