@@ -234,14 +234,17 @@ func TestDeviceStateAndStatusAreForwarded(t *testing.T) {
 func TestExpiredValueIsReportedRemoved(t *testing.T) {
 	t.Parallel()
 	e := newHubEnv(t)
-	e.start(t)
+	// set before the hub subscribes: no event marks the key, only the recheck does
 	e.cache.Set("pv/power", livecache.Value{Num: 500, Unit: "W", At: e.clock.Now()}, interval)
+	e.start(t)
 	c, _ := e.addClient(t, "pv/power")
 
 	// older than 3 x interval at the next 1 s recheck; no event announces that
 	e.clock.Advance(3*interval + time.Second)
 	var removed []any
 	require.Eventually(t, func() bool {
+		// A flush tick can come before the recheck tick. Advance to get one more flush.
+		e.clock.Advance(coalesceTick)
 		select {
 		case b := <-c.out:
 			f := frame{}
